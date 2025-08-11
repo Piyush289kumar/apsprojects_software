@@ -82,13 +82,7 @@ class PurchaseOrderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('echo "# apsprojects_software" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/Piyush289kumar/apsprojects_software.git
-git push -u origin mainpo_number')->label('PO #'),
+                Tables\Columns\TextColumn::make('po_number')->label('PO #'),
                 Tables\Columns\TextColumn::make('vendor.name')->label('Vendor'),
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
