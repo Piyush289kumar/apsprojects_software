@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Vendor extends Model
+{
+    protected $fillable = [
+        'name',
+        'contact_person',
+        'phone',
+        'email',
+        'gst_number',
+        'pan_number',
+        'address',
+        'city',
+        'state',
+        'pincode',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function productVendors(): HasMany
+    {
+        return $this->hasMany(ProductVendor::class);
+    }
+}
