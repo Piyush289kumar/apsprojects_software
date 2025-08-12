@@ -20,7 +20,7 @@ class VendorResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     // Group vendors under a sidebar section
-    protected static ?string $navigationGroup = 'Suppliers & Partners';
+    protected static ?string $navigationGroup = 'Suppliers & Customers';
 
     // Optional: sort order inside group
     protected static ?int $navigationSort = 1;

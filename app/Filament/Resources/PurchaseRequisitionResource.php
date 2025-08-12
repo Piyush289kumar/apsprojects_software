@@ -29,8 +29,8 @@ class PurchaseRequisitionResource extends Resource
 {
     protected static ?string $model = PurchaseRequisition::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'Inventory';
-
+    protected static ?string $navigationGroup = 'Purchase & Orders';
+    protected static ?int $navigationSort = 2;
     public static function form(Form $form): Form
     {
         return $form

@@ -18,7 +18,7 @@ class TaxSlabResource extends Resource
     protected static ?string $model = TaxSlab::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-percent-badge';
-    protected static ?string $navigationGroup = 'Inventory';
+    protected static ?string $navigationGroup = 'Products & Categories';
     protected static ?int $navigationSort = 3;
 
 

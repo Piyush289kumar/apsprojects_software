@@ -22,7 +22,10 @@ class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'CRM';
+     protected static ?string $navigationGroup = 'Suppliers & Customers';
+
+    // Optional: sort order inside group
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
