@@ -6,6 +6,7 @@ use App\Filament\Resources\StoreInventoryResource\Pages;
 use App\Filament\Resources\StoreInventoryResource\RelationManagers;
 use App\Models\StoreInventory;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -26,6 +27,8 @@ class StoreInventoryResource extends Resource
     {
         return $form
             ->schema([
+
+
                 Forms\Components\Select::make('store_id')
                     ->relationship('store', 'name')
                     ->required(),
@@ -34,20 +37,34 @@ class StoreInventoryResource extends Resource
                     ->label('Product')
                     ->required()
                     ->searchable()
-                    ->options(function (callable $get) {
+                    ->options(function (callable $get, $record) {
                         $storeId = $get('store_id');
                         if (!$storeId) {
                             return [];
                         }
 
-                        return \App\Models\Product::whereDoesntHave('storeInventories', function ($query) use ($storeId) {
-                            $query->where('store_id', $storeId);
-                        })->pluck('name', 'id');
+                        $query = \App\Models\Product::query();
+
+                        // In create mode, exclude products already in the store
+                        if (!$record) {
+                            $query->whereDoesntHave('storeInventories', function ($q) use ($storeId) {
+                                $q->where('store_id', $storeId);
+                            });
+                        } else {
+                            // In edit mode, allow the current product
+                            $query->where(function ($q) use ($storeId, $record) {
+                                $q->whereDoesntHave('storeInventories', function ($sub) use ($storeId) {
+                                    $sub->where('store_id', $storeId);
+                                })->orWhere('id', $record->product_id);
+                            });
+                        }
+
+                        return $query->pluck('name', 'id');
                     })
                     ->reactive(),
 
                 Forms\Components\TextInput::make('quantity')->numeric()->required(),
-            ]);
+            ])->columns(3);
     }
 
     public static function table(Table $table): Table
