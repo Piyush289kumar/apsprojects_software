@@ -10,6 +10,7 @@ use App\Models\PurchaseRequisitionItem;
 use App\Models\Store;
 use App\Models\Vendor;
 use Filament\Forms;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -35,7 +36,7 @@ class PurchaseRequisitionResource extends Resource
     {
         return $form
             ->schema([
-                Grid::make(2)->schema([
+                Grid::make(3)->schema([
                     Select::make('store_id')
                         ->label('Store (Requesting)')
                         ->options(Store::pluck('name', 'id'))
@@ -43,8 +44,12 @@ class PurchaseRequisitionResource extends Resource
                         ->required()
                         ->disabled(fn() => Auth::user()?->isStoreManager() ?? false)
                         ->dehydrated(true),
+
                     TextInput::make('reference')->label('Reference'),
+
+                    Textarea::make('notes')->label('Notes')->rows(1),
                 ]),
+
                 Repeater::make('items')
                     ->relationship('items')
                     ->label('Requested Items')
@@ -59,12 +64,11 @@ class PurchaseRequisitionResource extends Resource
                             TextInput::make('quantity')
                                 ->label('Quantity')
                                 ->numeric()
-                                ->required(),
-
-                            TextInput::make('note')->label('Note'),
+                                ->required(),                            
+                            Textarea::make('note')->label('Note')->rows(1),
                         ])
-                    ])->columns('full'),
-                TextInput::make('notes')->label('Notes')->columnSpan('full'),
+                    ])
+                    ->columnSpan('full'), // 🔹 Make it take full width
             ]);
     }
 
@@ -174,8 +178,8 @@ class PurchaseRequisitionResource extends Resource
     {
         return [
             'index' => Pages\ListPurchaseRequisitions::route('/'),
-            'create' => Pages\CreatePurchaseRequisition::route('/create'),
-            'edit' => Pages\EditPurchaseRequisition::route('/{record}/edit'),
+            // 'create' => Pages\CreatePurchaseRequisition::route('/create'),
+            // 'edit' => Pages\EditPurchaseRequisition::route('/{record}/edit'),
         ];
     }
 }
