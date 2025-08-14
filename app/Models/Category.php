@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use SolutionForest\FilamentTree\Concern\ModelTree;
+
 
 class Category extends Model
 {
-    use HasFactory, ModelTree;
+    use HasFactory;
 
     protected $fillable = [
         'name',

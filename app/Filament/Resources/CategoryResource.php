@@ -70,45 +70,22 @@ class CategoryResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('code')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
-                Tables\Columns\ImageColumn::make('image_path'),
                 Tables\Columns\TextColumn::make('parent.name')
                     ->label('Parent Category')
                     ->sortable()
                     ->searchable()
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('hsn_code')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('default_gst_rate')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('tax_slab_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\IconColumn::make('track_inventory')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('default_min_stock')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('default_max_stock')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('sort_order')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
+
+                Tables\Columns\IconColumn::make('track_inventory')->boolean(),
+                Tables\Columns\TextColumn::make('default_min_stock')->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('taxSlab.name')->label('Tax Slab')->sortable()->searchable(),
+                Tables\Columns\IconColumn::make('is_active')->boolean(),
+                Tables\Columns\TextColumn::make('hsn_code')->searchable(),
+                Tables\Columns\TextColumn::make('default_gst_rate')->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('code')->searchable(),
+
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('parent_id')
