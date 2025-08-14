@@ -88,7 +88,7 @@ class PurchaseOrderResource extends Resource
                 Tables\Columns\TextColumn::make('vendor.name')->label('Vendor'),
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

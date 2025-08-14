@@ -49,7 +49,7 @@ class ProductVendorResource extends Resource
                 Tables\Columns\TextColumn::make('last_purchase_price')->money('INR'),
                 Tables\Columns\TextColumn::make('average_purchase_price')->money('INR'),
                 Tables\Columns\TextColumn::make('last_purchase_date')->date(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('product_id')
                     ->label('Product')

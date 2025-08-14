@@ -55,7 +55,7 @@ class StockTransferResource extends Resource
                 Tables\Columns\TextColumn::make('requestedBy.name')->label('Requested By'),
                 Tables\Columns\TextColumn::make('approvedBy.name')->label('Approved By')->default('-'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

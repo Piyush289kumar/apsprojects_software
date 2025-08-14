@@ -81,7 +81,7 @@ class PurchaseRequisitionResource extends Resource
                 Tables\Columns\TextColumn::make('requester.name')->label('Requested By'),
                 Tables\Columns\TextColumn::make('status')->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

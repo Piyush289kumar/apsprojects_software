@@ -57,7 +57,7 @@ class InventoryMovementResource extends Resource
                 Tables\Columns\TextColumn::make('quantity')->sortable(),
                 Tables\Columns\TextColumn::make('price'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('type')->options([
                     'purchase' => 'Purchase',

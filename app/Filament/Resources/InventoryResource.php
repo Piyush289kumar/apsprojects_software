@@ -111,7 +111,7 @@ class InventoryResource extends Resource
                 Tables\Columns\TextColumn::make('max_stock'),
                 Tables\Columns\BooleanColumn::make('is_active'),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

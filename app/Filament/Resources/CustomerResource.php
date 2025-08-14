@@ -101,7 +101,7 @@ class CustomerResource extends Resource
                 TextColumn::make('gstin')->label('GSTIN')->sortable(),
                 TextColumn::make('business_type')->sortable(),
                 TextColumn::make('is_active')->boolean()->label('Active'),
-            ])
+            ])->defaultSort('name')
             ->filters([
                 //
             ])

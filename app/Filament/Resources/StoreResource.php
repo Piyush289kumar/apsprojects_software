@@ -90,7 +90,7 @@ class StoreResource extends Resource
                         default => $state,
                     }),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('name')
             ->filters([
                 Tables\Filters\Filter::make('status')
                     ->query(fn($query) => $query->where('status', 'active'))

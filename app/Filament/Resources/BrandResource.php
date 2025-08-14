@@ -79,7 +79,7 @@ class BrandResource extends Resource
                 Tables\Columns\TextColumn::make('gst_number'),
                 Tables\Columns\TextColumn::make('state'),
                 Tables\Columns\IconColumn::make('is_active')->boolean(),
-            ])
+            ])->defaultSort('name')
             ->filters([
                 //
             ])

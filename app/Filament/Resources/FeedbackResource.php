@@ -106,7 +106,7 @@ class FeedbackResource extends Resource
                     ->label('Submitted At')
                     ->dateTime()
                     ->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
                     ->options([

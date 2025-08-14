@@ -57,7 +57,7 @@ class DiscountCouponResource extends Resource
                 TextColumn::make('valid_from')->date()->sortable(),
                 TextColumn::make('valid_until')->date()->sortable(),
                 TextColumn::make('status')->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

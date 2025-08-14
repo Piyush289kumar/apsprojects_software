@@ -58,7 +58,7 @@ class StoreInventoryResource extends Resource
                 Tables\Columns\TextColumn::make('product.name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('quantity')->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('store_id')
                     ->relationship('store', 'name')

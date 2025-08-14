@@ -48,7 +48,7 @@ class TaxSlabResource extends Resource
                 Tables\Columns\TextColumn::make('rate')->suffix('%'),
                 Tables\Columns\TextColumn::make('tax_type')->badge(),
                 Tables\Columns\IconColumn::make('is_active')->boolean(),
-            ])
+            ])->defaultSort('name')
             ->filters([
                 Tables\Filters\Filter::make('active')
                     ->query(fn($query) => $query->where('is_active', true)),

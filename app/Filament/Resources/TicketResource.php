@@ -110,7 +110,7 @@ class TicketResource extends Resource
                 TextColumn::make('assignedStaff.name')->label('Assigned To')->sortable(),
                 TextColumn::make('creator.name')->label('Created By')->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

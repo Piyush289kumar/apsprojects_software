@@ -45,7 +45,7 @@ class KnowledgeBaseResource extends Resource
                 Tables\Columns\TextColumn::make('title')->searchable(),
                 Tables\Columns\TextColumn::make('slug'),
                 Tables\Columns\BadgeColumn::make('status'),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

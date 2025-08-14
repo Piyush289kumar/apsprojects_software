@@ -158,13 +158,13 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_path')->disk('public')->square(),
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('sku')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('category.name')->label('Category')->sortable(),
-                Tables\Columns\TextColumn::make('selling_price')->money('INR')->sortable(),
-                Tables\Columns\IconColumn::make('is_active')->boolean()->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->date()->sortable(),
+                Tables\Columns\ImageColumn::make('image_path')->disk('public')->square()->toggleable(),
+                Tables\Columns\TextColumn::make('name')->searchable()->sortable()->toggleable(),
+                Tables\Columns\TextColumn::make('sku')->searchable()->sortable()->toggleable(),
+                Tables\Columns\TextColumn::make('category.name')->label('Category')->sortable()->toggleable(),
+                Tables\Columns\TextColumn::make('selling_price')->money('INR')->sortable()->toggleable(),
+                Tables\Columns\IconColumn::make('is_active')->boolean()->sortable()->toggleable(),
+                Tables\Columns\TextColumn::make('created_at')->date()->sortable()->toggleable(),
             ])
             ->defaultSort('name')
             ->filters([
