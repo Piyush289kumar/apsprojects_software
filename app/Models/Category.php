@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use SolutionForest\FilamentTree\Concern\ModelTree;
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, ModelTree;
 
     protected $fillable = [
         'name',
@@ -29,8 +30,8 @@ class Category extends Model
 
     protected $casts = [
         'track_inventory' => 'boolean',
-        'is_active'       => 'boolean',
-        'meta'            => 'array',
+        'is_active' => 'boolean',
+        'meta' => 'array',
     ];
 
     // Relationships
@@ -48,4 +49,15 @@ class Category extends Model
     {
         return $this->belongsTo(TaxSlab::class);
     }
+    public function getDepthAttribute()
+    {
+        $depth = 0;
+        $parent = $this->parent;
+        while ($parent) {
+            $depth++;
+            $parent = $parent->parent;
+        }
+        return $depth;
+    }
+
 }

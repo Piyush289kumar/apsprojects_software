@@ -18,7 +18,7 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-protected static ?string $navigationGroup = 'Products & Categories';
+    protected static ?string $navigationGroup = 'Products & Categories';
     protected static ?int $navigationSort = 2;
 
 
@@ -75,9 +75,11 @@ protected static ?string $navigationGroup = 'Products & Categories';
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('image_path'),
-                Tables\Columns\TextColumn::make('parent_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('parent.name')
+                    ->label('Parent Category')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('hsn_code')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('default_gst_rate')
