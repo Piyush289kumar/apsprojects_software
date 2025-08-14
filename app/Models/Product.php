@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -44,6 +45,16 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
     public function taxSlab(): BelongsTo
     {
         return $this->belongsTo(TaxSlab::class);
@@ -59,12 +70,43 @@ class Product extends Model
         return $this->hasMany(StoreInventory::class);
     }
 
+    /**
+     * Boot method to auto-generate SKU and barcode.
+     */
+    protected static function boot()
+    {
+        parent::boot();
 
-    // In app/Models/Product.php
+        static::creating(function ($product) {
+            // Generate SKU if empty
+            if (empty($product->sku)) {
+                $product->sku = static::generateUniqueSku($product->name);
+            }
 
-    // public function storeInventories()
-    // {
-    //     return $this->hasMany(StoreInventory::class);
-    // }
+            // Generate barcode if empty
+            if (empty($product->barcode)) {
+                $product->barcode = static::generateUniqueBarcode();
+            }
+        });
+    }
 
+    protected static function generateUniqueSku($name)
+    {
+        do {
+            // Example: PROD-XXXX
+            $sku = strtoupper(Str::slug($name, '')) . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (static::where('sku', $sku)->exists());
+
+        return $sku;
+    }
+
+    protected static function generateUniqueBarcode()
+    {
+        do {
+            // 12-digit random barcode
+            $barcode = strtoupper(Str::random(12));
+        } while (static::where('barcode', $barcode)->exists());
+
+        return $barcode;
+    }
 }

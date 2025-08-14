@@ -6,6 +6,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Product;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -28,23 +29,101 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Basic Information')
                     ->schema([
                         Forms\Components\TextInput::make('name')->required()->maxLength(255),
-                        Forms\Components\TextInput::make('sku')->required()->unique(ignoreRecord: true),
-                        Forms\Components\TextInput::make('barcode')->maxLength(255),
-                        Forms\Components\TextInput::make('unit')->maxLength(50),
-                        Forms\Components\TextInput::make('brand')->maxLength(255),
-                    ])->columns(2),
+                        Forms\Components\TextInput::make('sku')
+                            ->disabled()
+                            ->dehydrated() // Save to DB
+                            ->unique(ignoreRecord: true),
+
+                        Forms\Components\TextInput::make('barcode')
+                            ->disabled()
+                            ->dehydrated()
+                            ->unique(ignoreRecord: true)->hidden(true),
+                        Forms\Components\Select::make('unit_id')
+                            ->label('Unit')
+                            ->relationship('unit', 'symbol')
+                            ->searchable()
+                            ->required(),
+
+                        Forms\Components\Select::make('brand_id')
+                            ->label('Brand')
+                            ->relationship('brand', 'name')
+                            ->searchable()
+                            ->nullable(),
+
+                    ])->columns(4),
 
                 Forms\Components\Section::make('Category & Tax')
                     ->schema([
-                        Forms\Components\Select::make('category_id')
-                            ->relationship('category', 'name')
-                            ->nullable(),
-                        Forms\Components\TextInput::make('hsn_code')->maxLength(8),
-                        Forms\Components\Select::make('tax_slab_id')
-                            ->relationship('taxSlab', 'name')
-                            ->nullable(),
-                        Forms\Components\TextInput::make('gst_rate')->numeric()->step(0.01)->nullable(),
-                    ])->columns(2),
+                        // Level 1: Main Category
+                        Forms\Components\Select::make('category_level_1')
+                            ->label('Main Category')
+                            ->options(
+                                \App\Models\Category::query()
+                                    ->whereNull('parent_id')
+                                    ->pluck('name', 'id')
+                            )
+                            ->reactive()
+                            ->afterStateUpdated(fn(callable $set) => $set('category_level_2', null))
+                            ->required(),
+
+                        // Level 2: Sub Category (only shows if Level 1 has children)
+                        Forms\Components\Select::make('category_level_2')
+                            ->label('Sub Category')
+                            ->options(function (callable $get) {
+                                $parentId = $get('category_level_1');
+                                if (!$parentId)
+                                    return [];
+                                return \App\Models\Category::where('parent_id', $parentId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->hidden(function (callable $get) {
+                                $parentId = $get('category_level_1');
+                                return !\App\Models\Category::where('parent_id', $parentId)->exists();
+                            })
+                            ->reactive()
+                            ->afterStateUpdated(fn(callable $set) => $set('category_level_3', null)),
+
+                        // Level 3: Sub Sub Category (only shows if Level 2 has children)
+                        Forms\Components\Select::make('category_level_3')
+                            ->label('Sub Sub Category')
+                            ->options(function (callable $get) {
+                                $parentId = $get('category_level_2');
+                                if (!$parentId)
+                                    return [];
+                                return \App\Models\Category::where('parent_id', $parentId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->hidden(function (callable $get) {
+                                $parentId = $get('category_level_2');
+                                return !$parentId || !\App\Models\Category::where('parent_id', $parentId)->exists();
+                            })
+                            ->reactive(),
+
+                        // Hidden actual field to store selected category ID
+                        Forms\Components\Hidden::make('category_id')
+                            ->dehydrateStateUsing(function (callable $get) {
+                                return $get('category_level_3')
+                                    ?? $get('category_level_2')
+                                    ?? $get('category_level_1');
+                            }),
+
+                        Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('hsn_code')
+                                    ->maxLength(8),
+
+                                Forms\Components\Select::make('tax_slab_id')
+                                    ->relationship('taxSlab', 'name')
+                                    ->nullable(),
+
+                                Forms\Components\TextInput::make('gst_rate')
+                                    ->numeric()
+                                    ->step(0.01)
+                                    ->nullable(),
+                            ]),
+                    ])->columns(3),
+
+
 
                 Forms\Components\Section::make('Pricing')
                     ->schema([
@@ -62,16 +141,16 @@ class ProductResource extends Resource
 
                 Forms\Components\Section::make('Metadata')
                     ->schema([
+                        Forms\Components\Toggle::make('is_active')->default(true),
                         Forms\Components\FileUpload::make('image_path')
                             ->disk('public')
                             ->directory('products')
                             ->image()
                             ->nullable(),
-                        Forms\Components\Toggle::make('is_active')->default(true),
                         Forms\Components\KeyValue::make('meta')
                             ->label('Custom Metadata')
                             ->nullable(),
-                    ])->columns(2),
+                    ])->columns(3),
             ]);
     }
 

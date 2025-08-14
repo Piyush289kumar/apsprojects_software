@@ -12,13 +12,13 @@ return new class extends Migration {
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            
+
             // Basic Info
             $table->string('name');
             $table->string('sku')->unique(); // Internal unique code
             $table->string('barcode')->nullable(); // Optional barcode/EAN
-            $table->string('unit')->nullable(); // e.g., "box", "kg", "litre"
-            $table->string('brand')->nullable();
+            $table->foreignId('unit_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('brand_id')->nullable()->constrained()->nullOnDelete();
 
             // Category & Tax
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();

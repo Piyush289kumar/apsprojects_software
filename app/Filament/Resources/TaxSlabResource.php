@@ -19,7 +19,7 @@ class TaxSlabResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-percent-badge';
     protected static ?string $navigationGroup = 'Products & Categories';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
 
     public static function form(Form $form): Form
