@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use function Livewire\wrap;
 
 class InventoryMovementResource extends Resource
 {
@@ -50,6 +51,7 @@ class InventoryMovementResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('remarks')->sortable()->wrap(false),
                 Tables\Columns\TextColumn::make('store.name')->sortable(),
                 Tables\Columns\TextColumn::make('product.name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('user.name')->label('User'),
