@@ -17,6 +17,13 @@ return new class extends Migration {
             $table->string('reference')->nullable();
             $table->text('notes')->nullable();
             $table->enum('status', ['pending', 'partially_approved', 'approved', 'rejected'])->default('pending');
+            $table->string('requisition_pdf')->nullable();
+            
+            // Optional: future-proof fields
+            $table->string('priority')->nullable(); // e.g., low, medium, high
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('approved_at')->nullable();
+            $table->json('meta')->nullable(); // store extra structured info
             $table->timestamps();
         });
     }

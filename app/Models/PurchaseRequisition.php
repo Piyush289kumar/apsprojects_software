@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,16 @@ class PurchaseRequisition extends Model
         'reference',
         'notes',
         'status',
+        'requisition_pdf',
+        'priority',
+        'approved_by',
+        'approved_at',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
+        'approved_at' => 'datetime',
     ];
 
     public function items()
@@ -29,5 +40,10 @@ class PurchaseRequisition extends Model
     public function requester()
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }
