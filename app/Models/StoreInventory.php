@@ -18,6 +18,12 @@ class StoreInventory extends Model
         'avg_selling_price',
     ];
 
+    protected $casts = [
+        'quantity' => 'integer',
+        'avg_purchase_price' => 'decimal:2',
+        'avg_selling_price' => 'decimal:2',
+    ];
+
     public function store()
     {
         return $this->belongsTo(Store::class);
@@ -36,37 +42,37 @@ class StoreInventory extends Model
             // Sum quantity of all stores for this product
             $totalQuantity = self::where('product_id', $productId)->sum('quantity');
 
-            // Calculate average prices (weighted avg would be better but this is simple average)
-            $avgPurchasePrice = self::where('product_id', $productId)->avg('avg_purchase_price');
-            $avgSellingPrice = self::where('product_id', $productId)->avg('avg_selling_price');
+            // Calculate average prices
+            $avgPurchasePrice = self::where('product_id', $productId)->avg('avg_purchase_price') ?: 0;
+            $avgSellingPrice = self::where('product_id', $productId)->avg('avg_selling_price') ?: 0;
 
-            // Update or create the central inventory record
             Inventory::updateOrCreate(
                 ['product_id' => $productId],
                 [
                     'total_quantity' => $totalQuantity,
-                    'avg_purchase_price' => $avgPurchasePrice ?: 0,
-                    'avg_selling_price' => $avgSellingPrice ?: 0,
+                    'avg_purchase_price' => $avgPurchasePrice,
+                    'avg_selling_price' => $avgSellingPrice,
                 ]
             );
         });
     }
 
-    public static function adjustStock($storeId, $productId, $qtyChange)
+    /**
+     * Safely decrease stock.
+     */
+    public static function decreaseStock(int $storeId, int $productId, int $quantity): bool
     {
-        $inventory = self::where('store_id', $storeId)
+        $storeInventory = self::where('store_id', $storeId)
             ->where('product_id', $productId)
             ->first();
 
-        if ($inventory) {
-            $inventory->quantity += $qtyChange;
-            $inventory->save();
-        } else {
-            self::create([
-                'store_id' => $storeId,
-                'product_id' => $productId,
-                'quantity' => $qtyChange,
-            ]);
+        if (!$storeInventory || $storeInventory->quantity < $quantity) {
+            return false; // Not enough stock
         }
+
+        $storeInventory->quantity -= $quantity;
+        $storeInventory->save();
+
+        return true;
     }
 }

@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Filament\Resources;
-
 use App\Filament\Resources\SiteInventoryIssueResource\Pages;
 use App\Filament\Resources\SiteInventoryIssueResource\RelationManagers;
 use App\Models\SiteInventoryIssue;
@@ -14,66 +12,72 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 class SiteInventoryIssueResource extends Resource
 {
     protected static ?string $model = SiteInventoryIssue::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = 'Stores';
     protected static ?string $navigationLabel = 'Site Inventory Issues';
     protected static ?int $navigationSort = 8;
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                // Store + Site + Issued By + Notes
                 Grid::make(3)->schema([
-                    Forms\Components\Select::make('store_id')
+                    Select::make('store_id')
                         ->label('Store')
                         ->relationship('store', 'name')
-                        ->required(),
+                        ->required()
+                        ->default(fn() => Auth::user()->role !== 'admin' ? Auth::user()->store_id : null)
+                        ->disabled(fn() => Auth::user()->role !== 'admin')
+                        ->reactive(),
 
-                    Forms\Components\Select::make('site_id')
+                    Select::make('site_id')
                         ->label('Site')
-                        ->relationship('site', 'name')
-                        ->required(),
+                        ->required()
+                        ->reactive()
+                        ->options(fn(callable $get) => $get('store_id')
+                            ? \App\Models\Site::where('store_id', $get('store_id'))->pluck('name', 'id')->toArray()
+                            : []),
 
-                    Forms\Components\Select::make('product_id')
-                        ->label('Product')
-                        ->relationship('product', 'name')
-                        ->searchable()
-                        ->required(),
-                ]),
-                Grid::make(3)->schema([
-                    Forms\Components\Select::make('issued_by')
+                    Select::make('issued_by')
                         ->label('Issued By')
                         ->relationship('issuer', 'name')
                         ->required()
-                        ->default(function () {
-                            $user = Auth::user(); // Get currently logged-in user
-                            // If user is manager, auto-set their ID
-                            return $user->role !== 'admin' ? $user->id : null;
-                        })
-                        ->disabled(function () {
-                            $user = Auth::user();
-                            // Disable field for managers, allow admins to select
-                            return $user->role !== 'admin';
-                        }),
-
-                    Forms\Components\TextInput::make('quantity')->numeric()->required(),
-
-                    Forms\Components\Select::make('status')
-                        ->options([
-                            'issued' => 'Issued',
-                            'returned' => 'Returned',
-                            'damaged' => 'Damaged',
-                        ])
-                        ->default('issued'),
+                        ->default(fn() => Auth::user()->role !== 'admin' ? Auth::user()->id : null)
+                        ->disabled(fn() => Auth::user()->role !== 'admin'),
                 ]),
 
-                Forms\Components\Textarea::make('notes')->label('Notes'),
-                Forms\Components\Textarea::make('meta')->label('Meta (JSON)')->json(),
+                // Repeater for multiple products
+                Repeater::make('products')
+                    ->label('Products to Issue')
+                    ->schema([
+                        Grid::make(3)->schema([
+                            Select::make('product_id')
+                                ->label('Product')
+                                ->relationship('product', 'name')
+                                ->searchable()
+                                ->required(),
+
+                            TextInput::make('quantity')
+                                ->label('Quantity')
+                                ->numeric()
+                                ->required()
+                                ->minValue(1),
+
+                            Textarea::make('notes')
+                                ->label('Notes')
+                                ->rows(1),
+                        ]),
+                    ])
+                    ->columns(1)
+                    ->columnSpan('full')
+                    ->required(),
             ]);
     }
 
@@ -105,14 +109,12 @@ class SiteInventoryIssueResource extends Resource
                 ]),
             ]);
     }
-
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-
     public static function getPages(): array
     {
         return [

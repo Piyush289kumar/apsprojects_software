@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Inventory extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'product_id',
         'total_quantity',
@@ -22,11 +23,15 @@ class Inventory extends Model
     protected $casts = [
         'meta' => 'array',
         'is_active' => 'boolean',
+        'total_quantity' => 'integer',
+        'avg_purchase_price' => 'decimal:2',
+        'avg_selling_price' => 'decimal:2',
+        'min_stock' => 'integer',
+        'max_stock' => 'integer',
     ];
 
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
-   
 }
