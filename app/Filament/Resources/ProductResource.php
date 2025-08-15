@@ -166,7 +166,7 @@ class ProductResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')->date()->sortable()->toggleable(),
             ])
-            ->defaultSort('name')
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 // Filter by Category
                 Tables\Filters\SelectFilter::make('category_id')

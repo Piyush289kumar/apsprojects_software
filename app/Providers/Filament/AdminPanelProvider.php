@@ -58,6 +58,6 @@ class AdminPanelProvider extends PanelProvider
             // ->databaseNotificationsPolling('30s')
             ->sidebarCollapsibleOnDesktop()
             ->collapsedSidebarWidth('9rem')
-            ->sidebarWidth('18rem');
+            ->sidebarWidth('16rem');
     }
 }
