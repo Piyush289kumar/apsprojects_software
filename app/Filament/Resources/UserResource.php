@@ -24,7 +24,7 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'User Management';
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 8;
 
     public static function form(Form $form): Form
     {
@@ -54,26 +54,17 @@ class UserResource extends Resource
                     ->minLength(8)
                     ->maxLength(255),
 
-                Select::make('role')
-                    ->options([
-                        'admin' => 'Admin',
-                        'manager' => 'Manager',
-                        'staff' => 'Staff',
-                    ])
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(fn(callable $set, $state) => $set('store_id', null)),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
 
-                Select::make('store_id')
+                Forms\Components\Select::make('store_id')
                     ->label('Store')
-                    ->options(fn() => \App\Models\Store::pluck('name', 'id'))
-                    ->required(fn(callable $get) => $get('role') === 'manager')
-                    ->visible(fn(callable $get) => $get('role') === 'manager')
-                    ->rule(function (callable $get, ?User $record) {
-                        return Rule::unique('users', 'store_id')
-                            ->ignore($record?->id)
-                            ->where('role', 'manager');
-                    }),
+                    ->relationship('store', 'name')
+                    ->searchable()
+                    ->nullable(),
             ]);
     }
 
