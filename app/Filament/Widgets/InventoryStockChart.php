@@ -3,12 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Inventory;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 
 class InventoryStockChart extends ChartWidget
 {
+    use HasWidgetShield;    
     protected static ?string $heading = 'Inventory Stock Levels';
-
     protected function getData(): array
     {
         // Get product names and quantities from inventories

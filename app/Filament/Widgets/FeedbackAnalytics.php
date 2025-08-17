@@ -3,12 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Feedback;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 
 class FeedbackAnalytics extends ChartWidget
 {
+    use HasWidgetShield;
     protected static ?string $heading = 'Feedback Overview';
-
     protected function getData(): array
     {
         $customerCount = Feedback::where('type', 'customer')->count();
