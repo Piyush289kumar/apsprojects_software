@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class StoreResource extends Resource
 {
@@ -97,7 +98,9 @@ class StoreResource extends Resource
                     ->label('Active Stores'),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -120,5 +123,21 @@ class StoreResource extends Resource
             'create' => Pages\CreateStore::route('/create'),
             'edit' => Pages\EditStore::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Restrict floors listing to manager's store.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if ($user && $user->isStoreManager()) {
+            // Show only the store assigned to the manager
+            $query->where('id', $user->store_id);
+        }
+
+        return $query;
     }
 }

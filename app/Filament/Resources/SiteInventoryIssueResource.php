@@ -30,54 +30,65 @@ class SiteInventoryIssueResource extends Resource
                 // Store + Site + Issued By + Notes
                 Grid::make(3)->schema([
                     Select::make('store_id')
-                        ->label('Store')
                         ->relationship('store', 'name')
                         ->required()
-                        ->default(fn() => Auth::user()->role !== 'admin' ? Auth::user()->store_id : null)
-                        ->disabled(fn() => Auth::user()->role !== 'admin')
-                        ->reactive(),
+                        ->searchable()
+                        ->preload()
+                        ->default(fn() => Auth::user()?->isStoreManager() ? Auth::user()->store_id : null)
+                        ->disabled(fn() => Auth::user()?->isStoreManager())
+                        ->dehydrated(), // <-- ensures value is saved even when disabled
 
                     Select::make('site_id')
                         ->label('Site')
                         ->required()
+                        ->searchable()
+                        ->preload()
                         ->reactive()
-                        ->options(fn(callable $get) => $get('store_id')
-                            ? \App\Models\Site::where('store_id', $get('store_id'))->pluck('name', 'id')->toArray()
-                            : []),
+                        ->options(function (callable $get) {
+                            $storeId = $get('store_id');
+
+                            if (!$storeId) {
+                                return [];
+                            }
+
+                            return \App\Models\Site::query()
+                                ->where('store_id', $storeId)
+                                ->pluck('name', 'id')
+                                ->toArray();
+                        })
+                        ->default(fn() => Auth::user()?->isStoreManager() ? Auth::user()->site_id : null),
 
                     Select::make('issued_by')
                         ->label('Issued By')
-                        ->relationship('issuer', 'name')
+                        ->relationship('issuer', 'name') // assumes model has issuer() -> belongsTo(User::class, 'issued_by')
                         ->required()
-                        ->default(fn() => Auth::user()->role !== 'admin' ? Auth::user()->id : null)
-                        ->disabled(fn() => Auth::user()->role !== 'admin'),
+                        ->default(fn() => Auth::id()) // always default to current logged in user
+                        ->disabled(fn() => !Auth::user()?->isAdmin())// disable if not admin
+                        ->dehydrated(),
+
                 ]),
 
-                // Repeater for multiple products
-                Repeater::make('products')
-                    ->label('Products to Issue')
-                    ->schema([
-                        Grid::make(3)->schema([
+                Grid::make(1)->schema([
+                    // Repeater for multiple products
+                    Repeater::make('items')
+                        ->relationship()
+                        ->schema([
                             Select::make('product_id')
                                 ->label('Product')
-                                ->relationship('product', 'name')
-                                ->searchable()
-                                ->required(),
+                                ->relationship('product', 'name') // works because SiteInventoryIssueItem has product()
+                                ->required()
+                                ->searchable(),
 
                             TextInput::make('quantity')
-                                ->label('Quantity')
                                 ->numeric()
-                                ->required()
-                                ->minValue(1),
-
+                                ->minValue(1)
+                                ->required(),
                             Textarea::make('notes')
-                                ->label('Notes')
                                 ->rows(1),
-                        ]),
-                    ])
-                    ->columns(1)
-                    ->columnSpan('full')
-                    ->required(),
+                        ])
+                        ->columns(3)
+                        ->required(),
+                ]),
             ]);
     }
 
@@ -87,12 +98,22 @@ class SiteInventoryIssueResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('store.name')->label('Store')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('site.name')->label('Site')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('product.name')->label('Product')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('issuer.name')->label('Issued By')->sortable(),
-                Tables\Columns\TextColumn::make('quantity'),
+
+                // Show number of products issued
+                Tables\Columns\TextColumn::make('items_count')
+                    ->counts('items')
+                    ->label('Products Count'),
+
+                // Or list product names
+                Tables\Columns\TextColumn::make('items.product.name')
+                    ->label('Products')
+                    ->listWithLineBreaks()
+                    ->limit(50),
+
                 Tables\Columns\TextColumn::make('status')->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->label('Issued On')->dateTime(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')->options([
                     'issued' => 'Issued',
@@ -101,7 +122,9 @@ class SiteInventoryIssueResource extends Resource
                 ]),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -122,5 +145,20 @@ class SiteInventoryIssueResource extends Resource
             // 'create' => Pages\CreateSiteInventoryIssue::route('/create'),
             // 'edit' => Pages\EditSiteInventoryIssue::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Restrict floors listing to manager's store.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if ($user && $user->isStoreManager()) {
+            $query->where('store_id', $user->store_id);
+        }
+
+        return $query;
     }
 }

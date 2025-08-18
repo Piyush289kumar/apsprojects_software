@@ -12,9 +12,7 @@ class SiteInventoryIssue extends Model
     protected $fillable = [
         'store_id',
         'site_id',
-        'product_id',
         'issued_by',
-        'quantity',        
         'status',
         'notes',
         'meta',
@@ -24,20 +22,24 @@ class SiteInventoryIssue extends Model
         'meta' => 'array',
     ];
 
-    // Relations
-    public function store() {
+    public function store()
+    {
         return $this->belongsTo(Store::class);
     }
 
-    public function site() {
+    public function site()
+    {
         return $this->belongsTo(Site::class);
     }
 
-    public function product() {
-        return $this->belongsTo(Product::class);
+    public function issuer()
+    {
+        return $this->belongsTo(User::class, 'issued_by');
     }
 
-    public function issuer() {
-        return $this->belongsTo(User::class, 'issued_by');
+
+    public function items()
+    {
+        return $this->hasMany(SiteInventoryIssueItem::class);
     }
 }
