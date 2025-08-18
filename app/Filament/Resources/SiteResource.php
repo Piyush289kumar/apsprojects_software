@@ -17,7 +17,7 @@ class SiteResource extends Resource
 {
     protected static ?string $model = Site::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = 'Stores';
     protected static ?int $navigationSort = 7;
 
