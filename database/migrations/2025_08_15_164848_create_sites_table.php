@@ -13,11 +13,10 @@ return new class extends Migration {
         Schema::create('sites', function (Blueprint $table) {
             $table->id();
             $table->foreignId('store_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('manager_id')->nullable()->constrained('users')->nullOnDelete(); // Manager for the site
 
             // Site Details
             $table->string('name');
-            $table->string('code')->unique();
+            $table->string('code')->nullable();
             $table->string('location')->nullable();
             $table->string('address')->nullable();
             $table->string('city')->nullable();

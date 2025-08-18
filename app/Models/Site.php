@@ -12,7 +12,6 @@ class Site extends Model
 
     protected $fillable = [
         'store_id',
-        'manager_id',
         'name',
         'code',
         'location',
@@ -41,13 +40,8 @@ class Site extends Model
         return $this->belongsTo(Store::class);
     }
 
-    public function manager()
-    {
-        return $this->belongsTo(User::class, 'manager_id');
-    }
-
     public function inventories()
     {
-        return $this->hasMany(SiteInventory::class);
+        return $this->hasMany(StoreInventory::class);
     }
 }
