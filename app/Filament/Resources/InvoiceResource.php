@@ -121,86 +121,124 @@ class InvoiceResource extends Resource
                             ->schema([
                                 Grid::make(12)
                                     ->schema([
-                                        Select::make('product_id')
-                                            ->label('Product')
-                                            ->options(Product::pluck('name', 'id'))
-                                            ->searchable()
-                                            ->required()
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, $get, $state) {
-                                                if ($state) {
-                                                    $product = Product::with('taxSlab')->find($state);
-                                                    if ($product) {
-                                                        $set('unit_price', $product->selling_price);
-                                                        $gstRate = $product->taxSlab ? $product->taxSlab->rate : 0;
-                                                        $gstHalf = $gstRate / 2;
 
-                                                        $set('cgst_rate', $gstHalf);
-                                                        $set('sgst_rate', $gstHalf);
-                                                        $set('igst_rate', 0);
+                                        Grid::make(12)
+                                            ->schema([
+                                                Select::make('product_id')
+                                                    ->label('Product')
+                                                    ->options(Product::pluck('name', 'id'))
+                                                    ->searchable()
+                                                    ->required()
+                                                    ->reactive()
+                                                    ->createOptionForm([
 
+                                                        Grid::make(2)
+                                                            ->schema([
+                                                                Forms\Components\TextInput::make('name')
+                                                                    ->label('Product Name')
+                                                                    ->placeholder('Enter product name') // <-- placeholder added
+                                                                    ->required(),
+
+                                                                Forms\Components\TextInput::make('selling_price')
+                                                                    ->label('Selling Price')
+                                                                    ->placeholder('Enter selling price') // <-- placeholder added
+                                                                    ->numeric()
+                                                                    ->default(0)
+                                                                    ->required(),
+                                                            ]),
+                                                    ])
+                                                    ->createOptionUsing(function (array $data) {
+                                                        $sku = 'PRD-' . str_pad(Product::max('id') + 1, 5, '0', STR_PAD_LEFT);
+
+                                                        $product = Product::create([
+                                                            'name' => $data['name'],
+                                                            'selling_price' => $data['selling_price'] ?? 0,
+                                                            'is_active' => false,
+                                                            'sku' => $sku,
+                                                            'purchase_price' => 0,
+                                                            'track_inventory' => false,
+                                                        ]);
+
+                                                        return $product->id;
+                                                    })
+                                                    ->afterStateUpdated(function (callable $set, $get, $state) {
+                                                        if ($state) {
+                                                            $product = Product::find($state);
+                                                            if ($product) {
+                                                                $set('unit_price', $product->selling_price);
+
+                                                                // Set GST rates to 0 as tax slab is removed
+                                                                $set('cgst_rate', 0);
+                                                                $set('sgst_rate', 0);
+                                                                $set('igst_rate', 0);
+
+                                                                InvoiceResource::recalculateItem($set, $get);
+                                                            }
+                                                        }
+                                                    })
+                                                    ->columnSpan(5),
+
+                                                TextInput::make('quantity')
+                                                    ->label('Quantity')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->default(0)
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
-                                                    }
-                                                }
-                                            })
-                                            ->columnSpan(3),
+                                                        // InvoiceResource::recalculateInvoiceTotals($set, $get);
+                                                    })
+                                                    ->columnSpan(2),
 
-                                        TextInput::make('quantity')
-                                            ->label('Quantity')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(0)
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                                                InvoiceResource::recalculateItem($set, $get);
-                                                // InvoiceResource::recalculateInvoiceTotals($set, $get);
-                                            })
-                                            ->columnSpan(1),
+                                                TextInput::make('unit_price')
+                                                    ->label('Unit Price')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                                        InvoiceResource::recalculateItem($set, $get);
+                                                    })
+                                                    ->columnSpan(2),
 
-                                        TextInput::make('unit_price')
-                                            ->label('Unit Price')
-                                            ->numeric()
-                                            ->required()
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                                                InvoiceResource::recalculateItem($set, $get);
-                                            })
-                                            ->columnSpan(2),
+                                                TextInput::make('cgst_rate')
+                                                    ->label('CGST (%)')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                                        InvoiceResource::recalculateItem($set, $get);
+                                                    })
+                                                    ->columnSpan(1),
 
-                                        TextInput::make('cgst_rate')
-                                            ->label('CGST Rate (%)')
-                                            ->numeric()
-                                            ->default(0)
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                                                InvoiceResource::recalculateItem($set, $get);
-                                            })
-                                            ->columnSpan(1),
+                                                TextInput::make('sgst_rate')
+                                                    ->label('SGST (%)')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                                        InvoiceResource::recalculateItem($set, $get);
+                                                    })
+                                                    ->columnSpan(1),
 
-                                        TextInput::make('sgst_rate')
-                                            ->label('SGST Rate (%)')
-                                            ->numeric()
-                                            ->default(0)
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                                                InvoiceResource::recalculateItem($set, $get);
-                                            })
-                                            ->columnSpan(1),
+                                                TextInput::make('igst_rate')
+                                                    ->label('IGST (%)')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->reactive()
+                                                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                                        InvoiceResource::recalculateItem($set, $get);
+                                                    })
+                                                    ->columnSpan(1),
 
-                                        TextInput::make('igst_rate')
-                                            ->label('IGST Rate (%)')
-                                            ->numeric()
-                                            ->default(0)
-                                            ->reactive()
-                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                                                InvoiceResource::recalculateItem($set, $get);
-                                            })
-                                            ->columnSpan(1),
+                                            ]),
 
-                                        TextInput::make('cgst_amount')->label('CGST Amount')->numeric()->disabled()->columnSpan(1),
-                                        TextInput::make('sgst_amount')->label('SGST Amount')->numeric()->disabled()->columnSpan(1),
-                                        TextInput::make('igst_amount')->label('IGST Amount')->numeric()->disabled()->columnSpan(1),
-                                        TextInput::make('total_amount')->label('Total Amount')->numeric()->disabled()->columnSpan(2),
+                                        Grid::make(12)
+                                            ->schema([
+                                                TextInput::make('cgst_amount')->label('CGST Amount')->numeric()->disabled()->columnSpan(3),
+                                                TextInput::make('sgst_amount')->label('SGST Amount')->numeric()->disabled()->columnSpan(3),
+                                                TextInput::make('igst_amount')->label('IGST Amount')->numeric()->disabled()->columnSpan(3),
+                                                TextInput::make('total_amount')->label('Total Amount')->numeric()->disabled()->columnSpan(3),
+                                            ]),
                                     ]),
                             ]),
                     ]),
