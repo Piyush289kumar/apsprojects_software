@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Filament\Resources;
-
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Models\Invoice;
 use App\Models\Product;
@@ -12,7 +10,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -20,34 +17,26 @@ use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
-
 class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Billing';
     protected static ?int $navigationSort = 5;
-
     public static function afterCreate(array $data, Invoice $record)
     {
         self::generateInvoicePdf($record);
     }
-
     public static function afterUpdate(array $data, Invoice $record)
     {
         self::generateInvoicePdf($record);
     }
-
     protected static function generateInvoicePdf(Invoice $invoice): void
     {
         $pdf = PDF::loadView('invoice_pdf', ['invoice' => $invoice]);
-
         $pdfContent = $pdf->output();
-
         Storage::disk('public')->put('invoices/invoice-' . $invoice->invoice_number . '.pdf', $pdfContent);
     }
-
-
     public static function form(Form $form): Form
     {
         return $form
@@ -60,7 +49,6 @@ class InvoiceResource extends Resource
                             ->readonly()
                             ->default(fn() => 'INV-' . strtoupper(Str::random(8)))
                             ->unique(ignoreRecord: true),
-
                         Select::make('billable_type')
                             ->label('Bill To')
                             ->options([
@@ -69,7 +57,6 @@ class InvoiceResource extends Resource
                             ])
                             ->required()
                             ->reactive(),
-
                         Select::make('billable_id')
                             ->label('Select Customer/Vendor')
                             ->options(function (callable $get) {
@@ -82,7 +69,6 @@ class InvoiceResource extends Resource
                             ->required()
                             ->reactive(),
                     ]),
-
                 Grid::make('4')
                     ->schema([
                         Select::make('type')
@@ -93,20 +79,16 @@ class InvoiceResource extends Resource
                             ])
                             ->required()
                             ->default('sale'),
-
                         DatePicker::make('invoice_date')
                             ->label('Invoice Date')
                             ->required()
                             ->default(now()),
-
                         DatePicker::make('due_date')
                             ->label('Due Date'),
-
                         TextInput::make('place_of_supply')
                             ->label('Place of Supply (State Code)')
                             ->maxLength(5),
                     ]),
-
                 Grid::make('1')
                     ->schema([
                         Repeater::make('items')
@@ -121,7 +103,6 @@ class InvoiceResource extends Resource
                             ->schema([
                                 Grid::make(12)
                                     ->schema([
-
                                         Grid::make(12)
                                             ->schema([
                                                 Select::make('product_id')
@@ -131,14 +112,12 @@ class InvoiceResource extends Resource
                                                     ->required()
                                                     ->reactive()
                                                     ->createOptionForm([
-
                                                         Grid::make(2)
                                                             ->schema([
                                                                 Forms\Components\TextInput::make('name')
                                                                     ->label('Product Name')
                                                                     ->placeholder('Enter product name') // <-- placeholder added
                                                                     ->required(),
-
                                                                 Forms\Components\TextInput::make('selling_price')
                                                                     ->label('Selling Price')
                                                                     ->placeholder('Enter selling price') // <-- placeholder added
@@ -149,7 +128,6 @@ class InvoiceResource extends Resource
                                                     ])
                                                     ->createOptionUsing(function (array $data) {
                                                         $sku = 'PRD-' . str_pad(Product::max('id') + 1, 5, '0', STR_PAD_LEFT);
-
                                                         $product = Product::create([
                                                             'name' => $data['name'],
                                                             'selling_price' => $data['selling_price'] ?? 0,
@@ -158,7 +136,6 @@ class InvoiceResource extends Resource
                                                             'purchase_price' => 0,
                                                             'track_inventory' => false,
                                                         ]);
-
                                                         return $product->id;
                                                     })
                                                     ->afterStateUpdated(function (callable $set, $get, $state) {
@@ -166,30 +143,26 @@ class InvoiceResource extends Resource
                                                             $product = Product::find($state);
                                                             if ($product) {
                                                                 $set('unit_price', $product->selling_price);
-
                                                                 // Set GST rates to 0 as tax slab is removed
                                                                 $set('cgst_rate', 0);
                                                                 $set('sgst_rate', 0);
                                                                 $set('igst_rate', 0);
-
                                                                 InvoiceResource::recalculateItem($set, $get);
                                                             }
                                                         }
                                                     })
                                                     ->columnSpan(5),
-
                                                 TextInput::make('quantity')
                                                     ->label('Quantity')
                                                     ->numeric()
                                                     ->required()
-                                                    ->default(0)
+                                                    ->default(0) // ensures it starts at 0
+                                                    ->placeholder('0') // optional, shows 0 when empty
                                                     ->reactive()
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
-                                                        // InvoiceResource::recalculateInvoiceTotals($set, $get);
                                                     })
                                                     ->columnSpan(2),
-
                                                 TextInput::make('unit_price')
                                                     ->label('Unit Price')
                                                     ->numeric()
@@ -199,7 +172,6 @@ class InvoiceResource extends Resource
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
                                                     ->columnSpan(2),
-
                                                 TextInput::make('cgst_rate')
                                                     ->label('CGST (%)')
                                                     ->numeric()
@@ -209,7 +181,6 @@ class InvoiceResource extends Resource
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
                                                     ->columnSpan(1),
-
                                                 TextInput::make('sgst_rate')
                                                     ->label('SGST (%)')
                                                     ->numeric()
@@ -219,7 +190,6 @@ class InvoiceResource extends Resource
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
                                                     ->columnSpan(1),
-
                                                 TextInput::make('igst_rate')
                                                     ->label('IGST (%)')
                                                     ->numeric()
@@ -229,9 +199,7 @@ class InvoiceResource extends Resource
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
                                                     ->columnSpan(1),
-
                                             ]),
-
                                         Grid::make(12)
                                             ->schema([
                                                 TextInput::make('cgst_amount')->label('CGST Amount')->numeric()->disabled()->columnSpan(3),
@@ -242,7 +210,6 @@ class InvoiceResource extends Resource
                                     ]),
                             ]),
                     ]),
-
                 TextInput::make('taxable_value')
                     ->label('Taxable Value')
                     ->numeric()
@@ -250,7 +217,6 @@ class InvoiceResource extends Resource
                     ->dehydrated(false)
                     ->reactive()
                     ->default(0),
-
                 TextInput::make('cgst_amount')
                     ->label('CGST Amount')
                     ->numeric()
@@ -258,7 +224,6 @@ class InvoiceResource extends Resource
                     ->dehydrated(false)
                     ->reactive()
                     ->default(0),
-
                 TextInput::make('sgst_amount')
                     ->label('SGST Amount')
                     ->numeric()
@@ -266,7 +231,6 @@ class InvoiceResource extends Resource
                     ->dehydrated(false)
                     ->reactive()
                     ->default(0),
-
                 TextInput::make('igst_amount')
                     ->label('IGST Amount')
                     ->numeric()
@@ -274,7 +238,6 @@ class InvoiceResource extends Resource
                     ->dehydrated(false)
                     ->reactive()
                     ->default(0),
-
                 TextInput::make('total_tax')
                     ->label('Total Tax')
                     ->numeric()
@@ -282,7 +245,6 @@ class InvoiceResource extends Resource
                     ->dehydrated(false)
                     ->reactive()
                     ->default(0),
-
                 TextInput::make('discount')
                     ->label('Invoice Discount')
                     ->numeric()
@@ -292,7 +254,6 @@ class InvoiceResource extends Resource
                         // only recalc totals here, no item recalcs
                         InvoiceResource::recalculateInvoiceTotals($set, $get);
                     }),
-
                 TextInput::make('total_amount')
                     ->label('Total Amount')
                     ->numeric()
@@ -300,9 +261,7 @@ class InvoiceResource extends Resource
                     ->dehydrated(true)
                     ->reactive()
                     ->default(0),
-
                 Forms\Components\Textarea::make('notes')->label('Additional Notes')->rows(3),
-
                 Select::make('status')->label('Payment Status')->options([
                     'pending' => 'Pending',
                     'paid' => 'Paid',
@@ -311,29 +270,49 @@ class InvoiceResource extends Resource
                 ])->default('pending')->required(),
             ]);
     }
-
     public static function recalculateInvoiceTotals(callable $set, callable $get): void
     {
         $items = $get('items') ?? [];
-
         $taxableValue = 0;
         $cgstAmount = 0;
         $sgstAmount = 0;
         $igstAmount = 0;
         $totalAmount = 0;
-
-        foreach ($items as $item) {
-            $taxableValue += (($item['unit_price'] ?? 0.0) * ($item['quantity'] ?? 0.0)) - ($item['discount'] ?? 0.0);
-            $cgstAmount += $item['cgst_amount'] ?? 0;
-            $sgstAmount += $item['sgst_amount'] ?? 0;
-            $igstAmount += $item['igst_amount'] ?? 0;
-            $totalAmount += $item['total_amount'] ?? 0;
+        foreach ($items as $index => $item) {
+            // $quantity = $item['quantity'] ?? 0;
+            // $unitPrice = $item['unit_price'] ?? 0;
+            // $discount = $item['discount'] ?? 0;
+            // $cgstRate = $item['cgst_rate'] ?? 0;
+            // $sgstRate = $item['sgst_rate'] ?? 0;
+            // $igstRate = $item['igst_rate'] ?? 0;
+            $quantity = (float) ($item['quantity'] ?? 0);
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
+            $discount = (float) ($item['discount'] ?? 0);
+            $cgstRate = (float) ($item['cgst_rate'] ?? 0);
+            $sgstRate = (float) ($item['sgst_rate'] ?? 0);
+            $igstRate = (float) ($item['igst_rate'] ?? 0);
+            $taxable = ($unitPrice * $quantity) - $discount;
+            $itemCgstAmount = ($taxable * $cgstRate) / 100;
+            $itemSgstAmount = ($taxable * $sgstRate) / 100;
+            $itemIgstAmount = ($taxable * $igstRate) / 100;
+            $itemTotalAmount = $taxable + $itemCgstAmount + $itemSgstAmount + $itemIgstAmount;
+            // Update item amounts in the repeater
+            $items[$index]['cgst_amount'] = round($itemCgstAmount, 2);
+            $items[$index]['sgst_amount'] = round($itemSgstAmount, 2);
+            $items[$index]['igst_amount'] = round($itemIgstAmount, 2);
+            $items[$index]['total_amount'] = round($itemTotalAmount, 2);
+            // Sum totals
+            $taxableValue += $taxable;
+            $cgstAmount += $itemCgstAmount;
+            $sgstAmount += $itemSgstAmount;
+            $igstAmount += $itemIgstAmount;
+            $totalAmount += $itemTotalAmount;
         }
-
         $totalTax = $cgstAmount + $sgstAmount + $igstAmount;
         $invoiceDiscount = $get('discount') ?? 0;
         $totalAmountAfterDiscount = $totalAmount - $invoiceDiscount;
-
+        // Update form values
+        $set('items', $items); // <-- make sure each item's total updates
         $set('taxable_value', round($taxableValue, 2));
         $set('cgst_amount', round($cgstAmount, 2));
         $set('sgst_amount', round($sgstAmount, 2));
@@ -341,30 +320,24 @@ class InvoiceResource extends Resource
         $set('total_tax', round($totalTax, 2));
         $set('total_amount', round($totalAmountAfterDiscount, 2));
     }
-
     public static function recalculateItem(callable $set, callable $get): void
     {
-        $quantity = $get('quantity') ?? 1;
-        $unitPrice = $get('unit_price') ?? 0;
-        $discount = $get('discount') ?? 0;
-        $cgstRate = $get('cgst_rate') ?? 0;
-        $sgstRate = $get('sgst_rate') ?? 0;
-        $igstRate = $get('igst_rate') ?? 0;
-
+        $quantity = (float) ($get('quantity') ?? 0);
+        $unitPrice = (float) ($get('unit_price') ?? 0);
+        $discount = (float) ($get('discount') ?? 0);
+        $cgstRate = (float) ($get('cgst_rate') ?? 0);
+        $sgstRate = (float) ($get('sgst_rate') ?? 0);
+        $igstRate = (float) ($get('igst_rate') ?? 0);
         $taxable = ($unitPrice * $quantity) - $discount;
-
         $cgstAmount = ($taxable * $cgstRate) / 100;
         $sgstAmount = ($taxable * $sgstRate) / 100;
         $igstAmount = ($taxable * $igstRate) / 100;
-
         $totalAmount = $taxable + $cgstAmount + $sgstAmount + $igstAmount;
-
         $set('cgst_amount', round($cgstAmount, 2));
         $set('sgst_amount', round($sgstAmount, 2));
         $set('igst_amount', round($igstAmount, 2));
         $set('total_amount', round($totalAmount, 2));
     }
-
     public static function mutateFormDataBeforeSave(array $data): array
     {
         $taxableValue = 0;
@@ -372,7 +345,6 @@ class InvoiceResource extends Resource
         $sgstAmount = 0;
         $igstAmount = 0;
         $totalAmount = 0;
-
         if (!empty($data['items'])) {
             foreach ($data['items'] as &$item) {
                 $quantity = $item['quantity'] ?? 0;
@@ -381,19 +353,15 @@ class InvoiceResource extends Resource
                 $cgstRate = $item['cgst_rate'] ?? 0;
                 $sgstRate = $item['sgst_rate'] ?? 0;
                 $igstRate = $item['igst_rate'] ?? 0;
-
                 $taxable = ($unitPrice * $quantity) - $discount;
-
                 $itemCgstAmount = ($taxable * $cgstRate) / 100;
                 $itemSgstAmount = ($taxable * $sgstRate) / 100;
                 $itemIgstAmount = ($taxable * $igstRate) / 100;
                 $itemTotalAmount = $taxable + $itemCgstAmount + $itemSgstAmount + $itemIgstAmount;
-
                 $item['cgst_amount'] = round($itemCgstAmount, 2);
                 $item['sgst_amount'] = round($itemSgstAmount, 2);
                 $item['igst_amount'] = round($itemIgstAmount, 2);
                 $item['total_amount'] = round($itemTotalAmount, 2);
-
                 $taxableValue += $taxable;
                 $cgstAmount += $itemCgstAmount;
                 $sgstAmount += $itemSgstAmount;
@@ -402,11 +370,9 @@ class InvoiceResource extends Resource
             }
             unset($item);
         }
-
         $totalTax = $cgstAmount + $sgstAmount + $igstAmount;
         $discount = $data['discount'] ?? 0;
         $totalAmountAfterDiscount = $totalAmount - $discount;
-
         return array_merge($data, [
             'items' => $data['items'],
             'taxable_value' => round($taxableValue, 2),
@@ -417,7 +383,6 @@ class InvoiceResource extends Resource
             'total_amount' => round($totalAmountAfterDiscount, 2),
         ]);
     }
-
     public static function table(Table $table): Table
     {
         return $table
@@ -450,14 +415,12 @@ class InvoiceResource extends Resource
                 ]),
             ]);
     }
-
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-
     public static function getPages(): array
     {
         return [
