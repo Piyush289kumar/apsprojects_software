@@ -3,15 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FloorResource\Pages;
-use App\Filament\Resources\FloorResource\RelationManagers;
 use App\Models\Floor;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class FloorResource extends Resource
 {
@@ -27,18 +26,17 @@ class FloorResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('store_id')
+                Select::make('store_id')
                     ->relationship('store', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->default(fn() => Auth::user()?->isStoreManager() ? Auth::user()->store_id : null)
+                    ->disabled(fn() => Auth::user()?->isStoreManager()),
 
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-
-                Forms\Components\TextInput::make('code')
-                    ->maxLength(50),
 
                 Forms\Components\TextInput::make('level')
                     ->numeric()
@@ -62,10 +60,6 @@ class FloorResource extends Resource
                         'under_maintenance' => 'Under Maintenance',
                     ])
                     ->default('active'),
-
-                Forms\Components\Textarea::make('settings')
-                    ->json()
-                    ->rows(3),
             ]);
     }
 
@@ -75,7 +69,6 @@ class FloorResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('store.name')->label('Store')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('code'),
                 Tables\Columns\TextColumn::make('level'),
                 Tables\Columns\TextColumn::make('type'),
                 Tables\Columns\BadgeColumn::make('status')
@@ -86,10 +79,8 @@ class FloorResource extends Resource
                     ]),
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -102,9 +93,7 @@ class FloorResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -114,5 +103,20 @@ class FloorResource extends Resource
             'create' => Pages\CreateFloor::route('/create'),
             'edit' => Pages\EditFloor::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Restrict floors listing to manager's store.
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if ($user && $user->isStoreManager()) {
+            $query->where('store_id', $user->store_id);
+        }
+
+        return $query;
     }
 }

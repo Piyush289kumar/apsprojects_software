@@ -10,6 +10,7 @@ class Block extends Model
     use HasFactory;
 
     protected $fillable = [
+        'store_id',
         'floor_id',
         'name',
         'code',
@@ -26,35 +27,18 @@ class Block extends Model
         'settings' => 'array',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
-
     public function floor()
     {
         return $this->belongsTo(Floor::class);
     }
 
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
+
     public function inventories()
     {
         return $this->hasMany(BlockInventory::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
     }
 }

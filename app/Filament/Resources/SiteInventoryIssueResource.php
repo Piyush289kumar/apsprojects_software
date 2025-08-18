@@ -22,7 +22,7 @@ class SiteInventoryIssueResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = 'Stores';
     protected static ?string $navigationLabel = 'Site Inventory Issues';
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 10;
     public static function form(Form $form): Form
     {
         return $form

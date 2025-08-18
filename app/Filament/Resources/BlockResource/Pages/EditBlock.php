@@ -16,4 +16,16 @@ class EditBlock extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $user = auth()->user();
+
+        if ($user->isStoreManager()) {
+            $data['store_id'] = $user->store_id;
+        }
+
+        return $data;
+    }
+
 }

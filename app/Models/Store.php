@@ -31,4 +31,17 @@ class Store extends Model
         'default_tax_rate' => 'decimal:2',
         'settings' => 'array',
     ];
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function managers()
+    {
+        return $this->hasMany(User::class)->whereHas('roles', function ($q) {
+            $q->where('name', 'manager');
+        });
+    }
+
 }

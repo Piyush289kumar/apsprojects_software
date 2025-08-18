@@ -3,15 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BlockResource\Pages;
-use App\Filament\Resources\BlockResource\RelationManagers;
 use App\Models\Block;
+use App\Models\Floor;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class BlockResource extends Resource
 {
@@ -27,23 +26,30 @@ class BlockResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('store_id')
+                    ->relationship('store', 'name')
+                    ->required()
+                    ->default(fn() => Auth::user()?->isStoreManager() ? Auth::user()->store_id : null)
+                    ->disabled(fn() => Auth::user()?->isStoreManager()),
+
                 Forms\Components\Select::make('floor_id')
-                    ->relationship('floor', 'name')
+                    ->label('Floor')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->reactive() // 👈 important so it updates when store changes
+                    ->options(function (callable $get) {
+                        $query = Floor::query();
 
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
+                        // If a store is selected (or fixed for manager), filter by it
+                        if ($storeId = $get('store_id')) {
+                            $query->where('store_id', $storeId);
+                        }
 
-                Forms\Components\TextInput::make('code')
-                    ->maxLength(50),
+                        return $query->pluck('name', 'id');
+                    }),
 
-                Forms\Components\TextInput::make('zone')
-                    ->maxLength(100)
-                    ->placeholder('Optional: e.g. North Wing'),
-
+                Forms\Components\TextInput::make('name')->required()->maxLength(255),
                 Forms\Components\Select::make('type')
                     ->options([
                         'rack' => 'Rack',
@@ -52,13 +58,7 @@ class BlockResource extends Resource
                         'area' => 'Area',
                     ])
                     ->default('rack'),
-
-                Forms\Components\TextInput::make('capacity')
-                    ->numeric()
-                    ->placeholder('Max stock capacity'),
-
-                Forms\Components\Textarea::make('description'),
-
+                Forms\Components\TextInput::make('zone')->maxLength(100),
                 Forms\Components\Select::make('status')
                     ->options([
                         'active' => 'Active',
@@ -66,18 +66,15 @@ class BlockResource extends Resource
                         'under_maintenance' => 'Under Maintenance',
                     ])
                     ->default('active'),
-
-                Forms\Components\Textarea::make('settings')
-                    ->json()
-                    ->rows(3),
-            ]);
+                Forms\Components\Textarea::make('description')->columnSpanFull(),
+            ])->columns(3);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('floor.store.name')->label('Store')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('store.name')->label('Store')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('floor.name')->label('Floor')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('code'),
@@ -92,9 +89,6 @@ class BlockResource extends Resource
                     ]),
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -106,13 +100,6 @@ class BlockResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
     public static function getPages(): array
     {
         return [
@@ -120,5 +107,20 @@ class BlockResource extends Resource
             'create' => Pages\CreateBlock::route('/create'),
             'edit' => Pages\EditBlock::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Restrict query so managers only see their store's blocks.
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if ($user && $user->isStoreManager()) {
+            $query->where('store_id', $user->store_id);
+        }
+
+        return $query;
     }
 }

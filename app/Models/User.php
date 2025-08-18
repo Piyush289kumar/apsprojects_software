@@ -14,8 +14,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'password',
-        // 'role', // optional: leave it if used for non-auth purposes, but don't use it for auth
+        'password',        
         'store_id',
     ];
 
@@ -40,11 +39,11 @@ class User extends Authenticatable
     // If you want convenience accessors, delegate to the trait:
     public function isStoreManager(): bool
     {
-        return $this->hasRole('manager'); // uses Spatie's hasRole
+        return $this->hasRole('Manager'); // uses Spatie's hasRole
     }
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('super_admin'); // or 'admin' if that’s your role name
+        return $this->hasRole('Administrator'); // or 'admin' if that’s your role name
     }
 }

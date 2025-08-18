@@ -16,6 +16,9 @@ return new class extends Migration {
             // Relation to Floor
             $table->foreignId('floor_id')->constrained()->cascadeOnDelete();
 
+            // Relation to Store
+            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
+
             // Identification
             $table->string('name'); // e.g. "Block A", "Rack B1"
             $table->string('code')->nullable(); // short unique code per floor
