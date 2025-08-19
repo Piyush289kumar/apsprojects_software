@@ -21,7 +21,7 @@ return [
         'actions' => [
             'print' => 'Print',
             'document' => [
-                'title' => 'Create Document',
+                'title' => 'PDF',
                 'notification' => [
                     'title' => 'Document Created',
                     'body' => 'Document has been created',
