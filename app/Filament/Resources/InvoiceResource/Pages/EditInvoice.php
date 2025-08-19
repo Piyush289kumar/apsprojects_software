@@ -19,8 +19,7 @@ class EditInvoice extends EditRecord
     protected function afterSave(): void
     {
         parent::afterSave();
-
-        InvoiceResource::generateAndSaveInvoicePdf($this->record);
+        InvoiceResource::generateInvoicePdf($this->record); // corrected method name
     }
 
 }

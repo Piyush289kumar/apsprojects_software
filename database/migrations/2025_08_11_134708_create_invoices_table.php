@@ -44,7 +44,8 @@ return new class extends Migration {
 
             // User/admin who created the invoice
             $table->foreignId('created_by')->constrained('users');
-
+            $table->string('invoice_path')->nullable()->nullable();
+            
             $table->timestamps();
         });
     }

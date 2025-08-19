@@ -31,11 +31,20 @@ class InvoiceResource extends Resource
     {
         self::generateInvoicePdf($record);
     }
-    protected static function generateInvoicePdf(Invoice $invoice): void
+    public static function generateInvoicePdf(Invoice $invoice): void
     {
-        $pdf = PDF::loadView('invoice_pdf', ['invoice' => $invoice]);
-        $pdfContent = $pdf->output();
-        Storage::disk('public')->put('invoices/invoice-' . $invoice->invoice_number . '.pdf', $pdfContent);
+        try {
+
+            // 4️⃣ Create PDF invoice
+            $pdf = Pdf::loadView('pdf.invoice', ['record' => $invoice]);
+            $fileName = "invoices/invoice-{ $invoice->invoice_number }.pdf";
+            Storage::disk('public')->put($fileName, $pdf->output());
+
+            $invoice->update(['invoice_path' => $fileName]);
+
+        } catch (\Exception $e) {
+            \Log::error('PDF generation failed: ' . $e->getMessage());
+        }
     }
     public static function form(Form $form): Form
     {
@@ -78,7 +87,7 @@ class InvoiceResource extends Resource
                                 'purchase' => 'Purchase',
                             ])
                             ->required()
-                            ->default('sale'),
+                            ->default('purchase'),
                         DatePicker::make('invoice_date')
                             ->label('Invoice Date')
                             ->required()
@@ -279,12 +288,6 @@ class InvoiceResource extends Resource
         $igstAmount = 0;
         $totalAmount = 0;
         foreach ($items as $index => $item) {
-            // $quantity = $item['quantity'] ?? 0;
-            // $unitPrice = $item['unit_price'] ?? 0;
-            // $discount = $item['discount'] ?? 0;
-            // $cgstRate = $item['cgst_rate'] ?? 0;
-            // $sgstRate = $item['sgst_rate'] ?? 0;
-            // $igstRate = $item['igst_rate'] ?? 0;
             $quantity = (float) ($item['quantity'] ?? 0);
             $unitPrice = (float) ($item['unit_price'] ?? 0);
             $discount = (float) ($item['discount'] ?? 0);
@@ -394,7 +397,7 @@ class InvoiceResource extends Resource
                 Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('total_amount')->money('INR')->sortable(),
                 Tables\Columns\TextColumn::make('status')->sortable(),
-            ])
+            ])->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
