@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -17,35 +18,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use TomatoPHP\FilamentDocs\Filament\Actions\DocumentAction;
+use TomatoPHP\FilamentDocs\Services\Contracts\DocsVar;
 class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Billing';
     protected static ?int $navigationSort = 5;
-    public static function afterCreate(array $data, Invoice $record)
-    {
-        self::generateInvoicePdf($record);
-    }
-    public static function afterUpdate(array $data, Invoice $record)
-    {
-        self::generateInvoicePdf($record);
-    }
-    public static function generateInvoicePdf(Invoice $invoice): void
-    {
-        try {
-
-            // 4️⃣ Create PDF invoice
-            $pdf = Pdf::loadView('pdf.invoice', ['record' => $invoice]);
-            $fileName = "invoices/invoice-{ $invoice->invoice_number }.pdf";
-            Storage::disk('public')->put($fileName, $pdf->output());
-
-            $invoice->update(['invoice_path' => $fileName]);
-
-        } catch (\Exception $e) {
-            \Log::error('PDF generation failed: ' . $e->getMessage());
-        }
-    }
     public static function form(Form $form): Form
     {
         return $form
@@ -211,10 +191,10 @@ class InvoiceResource extends Resource
                                             ]),
                                         Grid::make(12)
                                             ->schema([
-                                                TextInput::make('cgst_amount')->label('CGST Amount')->numeric()->disabled()->columnSpan(3),
-                                                TextInput::make('sgst_amount')->label('SGST Amount')->numeric()->disabled()->columnSpan(3),
-                                                TextInput::make('igst_amount')->label('IGST Amount')->numeric()->disabled()->columnSpan(3),
-                                                TextInput::make('total_amount')->label('Total Amount')->numeric()->disabled()->columnSpan(3),
+                                                TextInput::make('cgst_amount')->label('CGST Amount')->numeric()->disabled()->dehydrated(true)->columnSpan(3),
+                                                TextInput::make('sgst_amount')->label('SGST Amount')->numeric()->disabled()->dehydrated(true)->columnSpan(3),
+                                                TextInput::make('igst_amount')->label('IGST Amount')->numeric()->disabled()->dehydrated(true)->columnSpan(3),
+                                                TextInput::make('total_amount')->label('Total Amount')->numeric()->disabled()->dehydrated(true)->columnSpan(3),
                                             ]),
                                     ]),
                             ]),
@@ -223,39 +203,40 @@ class InvoiceResource extends Resource
                     ->label('Taxable Value')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated(false)
+                    ->dehydrated(true)
                     ->reactive()
                     ->default(0),
                 TextInput::make('cgst_amount')
                     ->label('CGST Amount')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated(false)
+                    ->dehydrated(true)
                     ->reactive()
                     ->default(0),
                 TextInput::make('sgst_amount')
                     ->label('SGST Amount')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated(false)
+                    ->dehydrated(true)
                     ->reactive()
                     ->default(0),
                 TextInput::make('igst_amount')
                     ->label('IGST Amount')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated(false)
+                    ->dehydrated(true)
                     ->reactive()
                     ->default(0),
                 TextInput::make('total_tax')
                     ->label('Total Tax')
                     ->numeric()
                     ->disabled()
-                    ->dehydrated(false)
+                    ->dehydrated(true)
                     ->reactive()
                     ->default(0),
                 TextInput::make('discount')
                     ->label('Invoice Discount')
+                    ->placeholder('0') // optional, shows 0 when empty
                     ->numeric()
                     ->default(0)
                     ->reactive()
@@ -312,8 +293,11 @@ class InvoiceResource extends Resource
             $totalAmount += $itemTotalAmount;
         }
         $totalTax = $cgstAmount + $sgstAmount + $igstAmount;
-        $invoiceDiscount = $get('discount') ?? 0;
+
+        // Cast discount safely to float
+        $invoiceDiscount = (float) ($get('discount') ?? 0);
         $totalAmountAfterDiscount = $totalAmount - $invoiceDiscount;
+
         // Update form values
         $set('items', $items); // <-- make sure each item's total updates
         $set('taxable_value', round($taxableValue, 2));
@@ -402,15 +386,50 @@ class InvoiceResource extends Resource
                 //
             ])
             ->actions([
+                // 👇 Add Document Action
+                DocumentAction::make()
+                    ->vars(fn($record) => [
+                        DocsVar::make('$INVOICE_NUMBER')->value($record->invoice_number),
+                        DocsVar::make('$INVOICE_DATE')->value(Carbon::parse($record->invoice_date)->format('d-m-Y')),
+                        DocsVar::make('$PLACE_OF_SUPPLY')->value($record->place_of_supply ?? ''),
+
+                        DocsVar::make('$ACCOUNT_NAME')->value($record->billable->name ?? ''),
+                        DocsVar::make('$ACCOUNT_ADDRESS')->value($record->billable->address ?? ''),
+                        DocsVar::make('$ACCOUNT_PHONE')->value($record->billable->phone ?? ''),
+                        DocsVar::make('$ACCOUNT_GSTIN')->value($record->billable->gstin ?? ''),
+                        DocsVar::make('$ACCOUNT_STATE')->value($record->billable->state ?? ''),
+
+                        DocsVar::make('$SUB_TOTAL')->value(
+                            number_format(
+                                $record->items->sum(fn($item) => (float) $item->unit_price * (float) $item->quantity),
+                                2
+                            )
+                        ),
+                        DocsVar::make('$DISCOUNT')->value(number_format($record->discount, 2)),
+                        DocsVar::make('$TOTAL_AMOUNT')->value(number_format($record->total_amount, 2)),
+                        DocsVar::make('$AMOUNT_RECEIVED')->value(number_format($record->amount_received, 2)),
+                        DocsVar::make('$AMOUNT_BALANCE')->value(number_format($record->total_amount - $record->amount_received, 2)),
+                        DocsVar::make('$YOU_SAVED')->value(number_format($record->discount, 2)),
+
+                        DocsVar::make('$AMOUNT_IN_WORDS')->value(\NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount)),
+
+                        DocsVar::make('$ITEMS')->value(
+                            $record->items->map(function ($item, $index) {
+                                return "<tr>
+                    <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
+                    <td style='padding:6px;'>{$item->product->name}</td>
+                    <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
+                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
+                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
+                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
+                </tr>";
+                            })->implode('')
+                        ),
+                    ]),
+
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Action::make('view_pdf')
-                    ->label('View PDF')
-                    ->icon('heroicon-o-document-download')
-                    ->url(fn($record) => asset('storage/invoices/invoice-' . $record->invoice_number . '.pdf'))
-                    ->openUrlInNewTab()
-                    ->visible(fn($record) => Storage::disk('public')->exists('invoices/invoice-' . $record->invoice_number . '.pdf')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

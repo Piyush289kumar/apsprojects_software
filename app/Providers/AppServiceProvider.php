@@ -7,6 +7,7 @@ use App\Models\StoreInventory;
 use App\Models\Inventory;
 use App\Observers\StoreInventoryObserver;
 use App\Observers\InventoryObserver;
+use TomatoPHP\FilamentDocs\Facades\FilamentDocs;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
     {
         StoreInventory::observe(StoreInventoryObserver::class);
         Inventory::observe(InventoryObserver::class);
+        // FilamentDocs::header('filament.header');
+        // FilamentDocs::footer('filament.footer');
     }
+
 }

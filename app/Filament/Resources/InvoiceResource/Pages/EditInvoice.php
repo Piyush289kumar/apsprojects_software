@@ -16,10 +16,6 @@ class EditInvoice extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-    protected function afterSave(): void
-    {
-        parent::afterSave();
-        InvoiceResource::generateInvoicePdf($this->record); // corrected method name
-    }
 
 }
+
