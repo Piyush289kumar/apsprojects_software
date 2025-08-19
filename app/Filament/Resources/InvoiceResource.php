@@ -388,6 +388,7 @@ class InvoiceResource extends Resource
             ->actions([
                 // 👇 Add Document Action
                 DocumentAction::make()
+                    ->templateId(4) // 👈 templateId passed here
                     ->vars(fn($record) => [
                         DocsVar::make('$INVOICE_NUMBER')->value($record->invoice_number),
                         DocsVar::make('$INVOICE_DATE')->value(Carbon::parse($record->invoice_date)->format('d-m-Y')),
