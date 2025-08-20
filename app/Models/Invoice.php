@@ -87,7 +87,8 @@ class Invoice extends Model
 
                 // 🔒 Use transaction + lock to prevent duplicates
                 DB::transaction(function () use ($invoice, $prefix) {
-                    $lastNumber = static::where('document_type', $invoice->document_type)
+                    $lastNumber = static::withTrashed() // Include soft-deleted invoices
+                        ->where('document_type', $invoice->document_type)
                         ->lockForUpdate() // prevent race conditions
                         ->orderBy('id', 'desc')
                         ->value('number');

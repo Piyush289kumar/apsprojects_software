@@ -23,7 +23,7 @@ class VendorResource extends Resource
     protected static ?string $navigationGroup = 'Suppliers & Customers';
 
     // Optional: sort order inside group
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 10;
 
     public static function form(Form $form): Form
     {
