@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Invoice extends Model
 {
+    use HasFactory, SoftDeletes;
     protected $fillable = [
-        'invoice_number',
+        'number',
+        'document_type',
         'billable_id',
         'billable_type',
-        'type',
-        'invoice_date',
+        'document_date',
         'due_date',
         'place_of_supply',
         'taxable_value',
@@ -26,6 +30,7 @@ class Invoice extends Model
         'notes',
         'document_id',
         'created_by',
+        'document_path',
     ];
 
     /**
@@ -36,17 +41,11 @@ class Invoice extends Model
         return $this->morphTo();
     }
 
-    /**
-     * Invoice has many items
-     */
     public function items()
     {
         return $this->hasMany(InvoiceItem::class);
     }
 
-    /**
-     * User who created the invoice
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -58,7 +57,7 @@ class Invoice extends Model
     }
 
     /**
-     * Boot method to auto set created_by and invoice_number
+     * Boot method to auto set created_by and document number
      */
     protected static function booted()
     {
@@ -68,33 +67,47 @@ class Invoice extends Model
                 $invoice->created_by = auth()->id();
             }
 
-            // Generate unique invoice number if not already set
-            if (empty($invoice->invoice_number)) {
-                $prefix = 'INV-';
-                $datePart = date('Ymd');
+            // Generate unique number if not already set
+            if (empty($invoice->number)) {
+                $prefixMap = [
+                    'purchase_order' => 'PO',
+                    'purchase' => 'PCH',
+                    'invoice' => 'INV',
+                    'estimate' => 'EST',
+                    'quotation' => 'QTN',
+                    'credit_note' => 'CN',
+                    'debit_note' => 'DN',
+                    'delivery_note' => 'DLV',
+                    'proforma' => 'PRF',
+                    'receipt' => 'RCPT',
+                    'payment_voucher' => 'PV',
+                ];
 
-                // Get latest invoice for today
-                $lastInvoice = static::whereDate('created_at', now()->toDateString())
-                    ->orderBy('id', 'desc')
-                    ->first();
+                $prefix = $prefixMap[$invoice->document_type] ?? 'DOC';
 
-                $nextNumber = 1;
+                // 🔒 Use transaction + lock to prevent duplicates
+                DB::transaction(function () use ($invoice, $prefix) {
+                    $lastNumber = static::where('document_type', $invoice->document_type)
+                        ->lockForUpdate() // prevent race conditions
+                        ->orderBy('id', 'desc')
+                        ->value('number');
 
-                if ($lastInvoice && preg_match('/INV-\d{8}-(\d+)/', $lastInvoice->invoice_number, $matches)) {
-                    $nextNumber = intval($matches[1]) + 1;
-                }
+                    $next = 1;
+                    if ($lastNumber) {
+                        // Extract numeric part (INV-0005 → 5)
+                        $lastNumeric = (int) str_replace($prefix . '-', '', $lastNumber);
+                        $next = $lastNumeric + 1;
+                    }
 
-                $invoice->invoice_number = $prefix . $datePart . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                    $invoice->number = $prefix . '-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+                });
             }
         });
 
-        // 🗑️ Delete linked document when invoice is deleted
         static::deleting(function ($invoice) {
             if ($invoice->document) {
                 $invoice->document->delete();
             }
-
-            // (Optional) also delete invoice items
             $invoice->items()->delete();
         });
     }

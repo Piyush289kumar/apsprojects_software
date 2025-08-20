@@ -13,20 +13,33 @@ return new class extends Migration {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
 
-            // Invoice number (unique, auto-increment or formatted)
-            $table->string('invoice_number')->unique();
+            // Generic document number (auto-generated per type)
+            $table->string('number')->unique();
+
+            // Document type (unifies all billing documents)
+            $table->enum('document_type', [
+                'purchase_order',
+                'purchase',
+                'invoice',
+                'estimate',
+                'quotation',
+                'credit_note',
+                'debit_note',
+                'delivery_note',
+                'proforma',
+                'receipt',
+                'payment_voucher',
+            ])->default('invoice');
 
             // Polymorphic billing party: customer or vendor
             $table->morphs('billable');
 
-            $table->enum('type', ['sale', 'purchase'])->default('sale'); // sale = customer, purchase = vendor
-
-            // Invoice date and due date
-            $table->date('invoice_date');
+            // Dates
+            $table->date('document_date'); // works for invoice_date, po_date, etc.
             $table->date('due_date')->nullable();
 
-            // GST / Tax related
-            $table->string('place_of_supply')->nullable(); // state code
+            // Tax related
+            $table->string('place_of_supply')->nullable();
             $table->decimal('taxable_value', 15, 2)->default(0);
             $table->decimal('cgst_amount', 15, 2)->default(0);
             $table->decimal('sgst_amount', 15, 2)->default(0);
@@ -37,18 +50,30 @@ return new class extends Migration {
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('total_amount', 15, 2)->default(0);
 
-            // Payment status: pending, paid, partial, cancelled
-            $table->enum('status', ['pending', 'paid', 'partial', 'cancelled'])->default('pending');
+            // Payment / process status
+            $table->enum('status', [
+                'draft',
+                'pending',
+                'paid',
+                'partial',
+                'cancelled',
+                'completed'
+            ])->default('draft');
 
             $table->text('notes')->nullable();
 
             $table->foreignId('document_id')->nullable()->constrained('documents')->nullOnDelete();
 
-            // User/admin who created the invoice
+            // User/admin who created the document
             $table->foreignId('created_by')->constrained('users');
-            $table->string('invoice_path')->nullable()->nullable();
-            
+
+            $table->string('document_path')->nullable();
+
+            $table->softDeletes();
             $table->timestamps();
+
+            // 🔑 Composite index for performance
+            $table->index(['document_type', 'number']);
         });
     }
 

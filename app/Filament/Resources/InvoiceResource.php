@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Models\Invoice;
@@ -11,20 +12,12 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
-use TomatoPHP\FilamentDocs\Filament\Actions\DocumentAction;
 use TomatoPHP\FilamentDocs\Filament\Resources\DocumentResource\Pages\PrintDocument;
-use TomatoPHP\FilamentDocs\Services\Contracts\DocsVar;
-use TomatoPHP\FilamentDocs\Filament\Actions\Table\PrintAction;
-use FilamentTiptapEditor\TiptapEditor;
-use TomatoPHP\FilamentDocs\Facades\FilamentDocs;
 use TomatoPHP\FilamentDocs\Models\Document;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
 class InvoiceResource extends Resource
@@ -39,12 +32,25 @@ class InvoiceResource extends Resource
             ->schema([
                 Grid::make(3)
                     ->schema([
-                        TextInput::make('invoice_number')
-                            ->label('Invoice Number')
-                            ->required()
+                        TextInput::make('number')
+                            ->label(fn(callable $get) => match ($get('document_type')) {
+                                'purchase_order' => 'PO Number',
+                                'purchase' => 'Purchase Number',
+                                'invoice' => 'Invoice Number',
+                                'estimate' => 'Estimate Number',
+                                'quotation' => 'Quotation Number',
+                                'credit_note' => 'Credit Note Number',
+                                'debit_note' => 'Debit Note Number',
+                                'delivery_note' => 'Delivery Note Number',
+                                'proforma' => 'Proforma Number',
+                                'receipt' => 'Receipt Number',
+                                'payment_voucher' => 'Payment Voucher Number',
+                                default => 'Document Number',
+                            })
                             ->readonly()
-                            ->default(fn() => 'INV-' . strtoupper(Str::random(8)))
+                            ->placeholder('Will be auto-generated')
                             ->unique(ignoreRecord: true),
+
                         Select::make('billable_type')
                             ->label('Bill To')
                             ->options([
@@ -88,16 +94,27 @@ class InvoiceResource extends Resource
 
                 Grid::make(4)
                     ->schema([
-                        Select::make('type')
+                        Select::make('document_type')
                             ->label('Invoice Type')
                             ->options([
-                                'sale' => 'Sale',
+                                'purchase_order' => 'Purchase Order',
                                 'purchase' => 'Purchase',
-                            ])
-                            ->disabled()
+                                'invoice' => 'Invoice',
+                                'estimate' => 'Estimate',
+                                'quotation' => 'Quotation',
+                                'credit_note' => 'Credit Note',
+                                'debit_note' => 'Debit Note',
+                                'delivery_note' => 'Delivery Note',
+                                'proforma' => 'Proforma',
+                                'receipt' => 'Receipt',
+                                'payment_voucher' => 'Payment Voucher',
+                            ])->disabled()
+                            ->dehydrated(true) // 👈 Force saving to DB
                             ->required()
-                            ->default('purchase'),
-                        DatePicker::make('invoice_date')
+                            ->default('invoice') // default selected option
+                            ->reactive(), // if you want to use it in dependent logic
+
+                        DatePicker::make('document_date')
                             ->label('Invoice Date')
                             ->required()
                             ->default(now()),
@@ -404,10 +421,10 @@ class InvoiceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('invoice_number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('number')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('billable.name')->label('Billed To')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('type')->sortable(),
-                Tables\Columns\TextColumn::make('invoice_date')->date()->sortable(),
+                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('total_amount')->money('INR')->sortable(),
                 Tables\Columns\TextColumn::make('status')->sortable(),
@@ -438,13 +455,13 @@ class InvoiceResource extends Resource
             </tr>";
                         })->implode('');
                         $map = [
-                            '$INVOICE_NUMBER' => (string) $record->invoice_number,
-                            '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
+                            '$NUMBER' => (string) $record->number,
+                            '$DOCUMENT_DATE' => Carbon::parse($record->document_date)->format('d-m-Y'),
                             '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
                             '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
                             '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
                             '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
-                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
+                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gst_number ?? ''),
                             '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
                             '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
                             '$DISCOUNT' => number_format($record->discount, 2),
@@ -500,13 +517,13 @@ class InvoiceResource extends Resource
             </tr>";
                         })->implode('');
                         $map = [
-                            '$INVOICE_NUMBER' => (string) $record->invoice_number,
-                            '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
+                            '$NUMBER' => (string) $record->number,
+                            '$DOCUMENT_DATE' => Carbon::parse($record->document_date)->format('d-m-Y'),
                             '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
                             '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
                             '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
                             '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
-                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
+                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gst_number ?? ''),
                             '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
                             '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
                             '$DISCOUNT' => number_format($record->discount, 2),
