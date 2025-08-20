@@ -25,6 +25,7 @@ use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Auth;
 use App\Models\PurchaseOrder;
 use App\Models\TransferOrder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class PurchaseRequisitionResource extends Resource
 {
@@ -174,6 +175,7 @@ class PurchaseRequisitionResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
                 ]),
             ]);
     }

@@ -24,6 +24,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use TomatoPHP\FilamentDocs\Filament\Resources\DocumentResource\Pages\PrintDocument;
 use TomatoPHP\FilamentDocs\Models\Document;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
@@ -644,6 +645,7 @@ class ProformaResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
                 ]),
             ]);
     }

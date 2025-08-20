@@ -17,6 +17,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class InventoryResource extends Resource
 {
@@ -121,6 +122,7 @@ class InventoryResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
                 ]),
             ]);
     }
