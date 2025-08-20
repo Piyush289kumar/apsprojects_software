@@ -5,6 +5,7 @@ use App\Models\Invoice;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -22,10 +23,8 @@ use TomatoPHP\FilamentDocs\Filament\Actions\DocumentAction;
 use TomatoPHP\FilamentDocs\Filament\Resources\DocumentResource\Pages\PrintDocument;
 use TomatoPHP\FilamentDocs\Services\Contracts\DocsVar;
 use TomatoPHP\FilamentDocs\Filament\Actions\Table\PrintAction;
-
 use FilamentTiptapEditor\TiptapEditor;
 use TomatoPHP\FilamentDocs\Facades\FilamentDocs;
-
 use TomatoPHP\FilamentDocs\Models\Document;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
 class InvoiceResource extends Resource
@@ -51,11 +50,13 @@ class InvoiceResource extends Resource
                             ->options([
                                 'App\Models\Customer' => 'Customer',
                                 'App\Models\Vendor' => 'Vendor',
-                            ])
+                            ])->disabled(true)
+                            ->default('App\Models\Vendor') // Always default to Vendor                            
                             ->required()
+                            ->dehydrated(true) // 👈 Force saving to DB
                             ->reactive(),
                         Select::make('billable_id')
-                            ->label('Select Customer/Vendor')
+                            ->label('Select Vendor')
                             ->options(function (callable $get) {
                                 $type = $get('billable_type');
                                 if (!$type) {
@@ -63,10 +64,29 @@ class InvoiceResource extends Resource
                                 }
                                 return $type::query()->pluck('name', 'id')->toArray();
                             })
+                            ->searchable()
                             ->required()
-                            ->reactive(),
+                            ->reactive()
+                            ->createOptionForm([   // 👈 Allow creating a new Vendor directly
+                                Grid::make('3')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('name')
+                                            ->label('Vendor Name')
+                                            ->required(),
+                                        Forms\Components\TextInput::make('email')
+                                            ->label('Email')
+                                            ->email(),
+                                        Forms\Components\TextInput::make('phone')
+                                            ->label('Phone'),
+                                    ]),
+                            ])
+                            ->createOptionUsing(function ($data) {
+                                return \App\Models\Vendor::create($data)->id;
+                            }),
+
                     ]),
-                Grid::make('4')
+
+                Grid::make(4)
                     ->schema([
                         Select::make('type')
                             ->label('Invoice Type')
@@ -74,6 +94,7 @@ class InvoiceResource extends Resource
                                 'sale' => 'Sale',
                                 'purchase' => 'Purchase',
                             ])
+                            ->disabled()
                             ->required()
                             ->default('purchase'),
                         DatePicker::make('invoice_date')
@@ -207,65 +228,68 @@ class InvoiceResource extends Resource
                                     ]),
                             ]),
                     ]),
-                TextInput::make('taxable_value')
-                    ->label('Taxable Value')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                TextInput::make('cgst_amount')
-                    ->label('CGST Amount')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                TextInput::make('sgst_amount')
-                    ->label('SGST Amount')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                TextInput::make('igst_amount')
-                    ->label('IGST Amount')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                TextInput::make('total_tax')
-                    ->label('Total Tax')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                TextInput::make('discount')
-                    ->label('Invoice Discount')
-                    ->placeholder('0') // optional, shows 0 when empty
-                    ->numeric()
-                    ->default(0)
-                    ->reactive()
-                    ->afterStateUpdated(function (callable $set, callable $get, $state) {
-                        // only recalc totals here, no item recalcs
-                        InvoiceResource::recalculateInvoiceTotals($set, $get);
-                    }),
-                TextInput::make('total_amount')
-                    ->label('Total Amount')
-                    ->numeric()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->reactive()
-                    ->default(0),
-                Forms\Components\Textarea::make('notes')->label('Additional Notes')->rows(3),
-                Select::make('status')->label('Payment Status')->options([
-                    'pending' => 'Pending',
-                    'paid' => 'Paid',
-                    'partial' => 'Partial',
-                    'cancelled' => 'Cancelled',
-                ])->default('pending')->required(),
+                Grid::make(5)
+                    ->schema([
+                        TextInput::make('taxable_value')
+                            ->label('Taxable Value')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        TextInput::make('cgst_amount')
+                            ->label('CGST Amount')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        TextInput::make('sgst_amount')
+                            ->label('SGST Amount')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        TextInput::make('igst_amount')
+                            ->label('IGST Amount')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        TextInput::make('total_tax')
+                            ->label('Total Tax')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        TextInput::make('discount')
+                            ->label('Invoice Discount')
+                            ->placeholder('0') // optional, shows 0 when empty
+                            ->numeric()
+                            ->default(0)
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                // only recalc totals here, no item recalcs
+                                InvoiceResource::recalculateInvoiceTotals($set, $get);
+                            }),
+                        TextInput::make('total_amount')
+                            ->label('Total Amount')
+                            ->numeric()
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->reactive()
+                            ->default(0),
+                        Select::make('status')->label('Payment Status')->options([
+                            'pending' => 'Pending',
+                            'paid' => 'Paid',
+                            'partial' => 'Partial',
+                            'cancelled' => 'Cancelled',
+                        ])->default('pending')->required(),
+                    ]),
+                Textarea::make('notes')->label('Additional Notes')->rows(3)->columnSpanFull(),
             ]);
     }
     public static function recalculateInvoiceTotals(callable $set, callable $get): void
@@ -301,11 +325,9 @@ class InvoiceResource extends Resource
             $totalAmount += $itemTotalAmount;
         }
         $totalTax = $cgstAmount + $sgstAmount + $igstAmount;
-
         // Cast discount safely to float
         $invoiceDiscount = (float) ($get('discount') ?? 0);
         $totalAmountAfterDiscount = $totalAmount - $invoiceDiscount;
-
         // Update form values
         $set('items', $items); // <-- make sure each item's total updates
         $set('taxable_value', round($taxableValue, 2));
@@ -394,7 +416,6 @@ class InvoiceResource extends Resource
                 //
             ])
             ->actions([
-
                 // 👇 Generate (or regenerate) and then View
                 Action::make('generateAndViewDocument')
                     ->label('View Document')
@@ -405,53 +426,44 @@ class InvoiceResource extends Resource
                         // 1) Fetch template
                         $template = DocumentTemplate::find(4);
                         $templateBody = (string) ($template->body ?? '');
-
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
-                            return "<tr>
-                <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
+                            return "<tr style='border-bottom: 1px solid #000;'>
+                <td style='padding:6px; text-align:center; font-weight: 900;'>" . ($index + 1) . "</td>
                 <td style='padding:6px;'>{$item->product->name}</td>
                 <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->unit_price, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->discount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->total_amount, 2) . "</td>
             </tr>";
                         })->implode('');
-
                         $map = [
                             '$INVOICE_NUMBER' => (string) $record->invoice_number,
                             '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
                             '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
-
                             '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
                             '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
                             '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
                             '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
                             '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
-
                             '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
                             '$DISCOUNT' => number_format($record->discount, 2),
                             '$TOTAL_AMOUNT' => number_format($record->total_amount, 2),
                             '$AMOUNT_RECEIVED' => number_format($record->amount_received, 2),
                             '$AMOUNT_BALANCE' => number_format($record->total_amount - $record->amount_received, 2),
                             '$YOU_SAVED' => number_format($record->discount, 2),
-
                             '$AMOUNT_IN_WORDS' => \NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount),
-
                             '$ITEMS' => $itemsHtml,
                         ];
-
                         // 3) Replace vars inside template HTML
                         $body = $templateBody;
                         foreach ($map as $key => $value) {
                             $body = str_replace($key, (string) $value, $body);
                         }
-
                         // 4) Delete old document if exists
                         if (!empty($record->document_id)) {
                             Document::where('id', $record->document_id)->delete();
                         }
-
                         // 5) Create new document
                         $document = Document::create([
                             'document_template_id' => 4,
@@ -459,18 +471,14 @@ class InvoiceResource extends Resource
                             'model_id' => $record->id,
                             'body' => $body,
                         ]);
-
                         // 6) Update invoice with new document_id
                         $record->document_id = $document->id;
                         $record->save();
-
                         // 7) Show document preview inside modal
                         return view('filament-docs::print', ['record' => $document]);
                     })
                     ->iconButton()
                     ->tooltip('View Document'),
-
-
                 // ✅ Generate and then Print (with print preview)
                 Action::make('generateAndPrintDocument')
                     ->label('Print Document')
@@ -480,53 +488,44 @@ class InvoiceResource extends Resource
                         // 1) Fetch template
                         $template = DocumentTemplate::find(4);
                         $templateBody = (string) ($template->body ?? '');
-
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
-                            return "<tr>
-                <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
+                            return "<tr style='border-bottom: 1px solid #000;'>
+                <td style='padding:6px; text-align:center; font-weight: 900;'>" . ($index + 1) . "</td>
                 <td style='padding:6px;'>{$item->product->name}</td>
                 <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
-                <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->unit_price, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->discount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹ " . number_format($item->total_amount, 2) . "</td>
             </tr>";
                         })->implode('');
-
                         $map = [
                             '$INVOICE_NUMBER' => (string) $record->invoice_number,
                             '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
                             '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
-
                             '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
                             '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
                             '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
                             '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
                             '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
-
                             '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
                             '$DISCOUNT' => number_format($record->discount, 2),
                             '$TOTAL_AMOUNT' => number_format($record->total_amount, 2),
                             '$AMOUNT_RECEIVED' => number_format($record->amount_received, 2),
                             '$AMOUNT_BALANCE' => number_format($record->total_amount - $record->amount_received, 2),
                             '$YOU_SAVED' => number_format($record->discount, 2),
-
                             '$AMOUNT_IN_WORDS' => \NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount),
-
                             '$ITEMS' => $itemsHtml,
                         ];
-
                         // 3) Replace vars inside template HTML
                         $body = $templateBody;
                         foreach ($map as $key => $value) {
                             $body = str_replace($key, (string) $value, $body);
                         }
-
                         // 4) Delete old document if exists
                         if (!empty($record->document_id)) {
                             Document::where('id', $record->document_id)->delete();
                         }
-
                         // 5) Create new document
                         $document = Document::create([
                             'document_template_id' => 4,
@@ -534,14 +533,11 @@ class InvoiceResource extends Resource
                             'model_id' => $record->id,
                             'body' => $body,
                         ]);
-
                         // 6) Update invoice with new document_id
                         $record->document_id = $document->id;
                         $record->save();
-
                         // 7) Trigger print preview with hidden iframe
                         $url = PrintDocument::getUrl(['record' => $document->id]);
-
                         $livewire->js(<<<JS
             const iframe = document.createElement('iframe');
             iframe.style.position = 'absolute';
@@ -558,8 +554,6 @@ class InvoiceResource extends Resource
                     })
                     ->iconButton()
                     ->tooltip('Print Document'),
-
-
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
