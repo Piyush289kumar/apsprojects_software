@@ -427,6 +427,16 @@ class EstimateResource extends Resource
             'total_amount' => round($totalAmountAfterDiscount, 2),
         ]);
     }
+
+     /**
+     * Show Only Document Estimate
+     */
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('document_type', 'estimate'); // Only invoices
+    }
     public static function table(Table $table): Table
     {
         return $table
@@ -650,15 +660,5 @@ class EstimateResource extends Resource
             'create' => Pages\CreateEstimate::route('/create'),
             'edit' => Pages\EditEstimate::route('/{record}/edit'),
         ];
-    }
-
-    /**
-     * Show Only Document Estimate
-     */
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->where('document_type', 'estimate'); // Only invoices
-    }
+    }   
 }

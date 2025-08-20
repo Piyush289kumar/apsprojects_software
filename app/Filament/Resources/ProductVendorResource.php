@@ -22,7 +22,7 @@ class ProductVendorResource extends Resource
     // Group vendors under a sidebar section
     protected static ?string $navigationGroup = 'Suppliers & Customers';
     // Optional: sort order inside group
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 12;
 
     public static function form(Form $form): Form
     {

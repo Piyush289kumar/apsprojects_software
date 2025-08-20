@@ -1,20 +1,23 @@
 <?php
 
 namespace App\Filament\Resources;
-use App\Filament\Resources\InvoiceResource\Pages;
-use App\Models\Invoice;
-use App\Models\Product;
+
+use App\Filament\Resources\PurchaseResource\Pages;
+use App\Filament\Resources\EstimateResource\RelationManagers;
+use App\Models\Estimate;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\Invoice;
+use App\Models\Product;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -24,13 +27,15 @@ use Filament\Tables\Actions\Action;
 use TomatoPHP\FilamentDocs\Filament\Resources\DocumentResource\Pages\PrintDocument;
 use TomatoPHP\FilamentDocs\Models\Document;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
-class InvoiceResource extends Resource
+use Filament\Tables\Filters\Filter;
+
+class PurchaseResource extends Resource
 {
     protected static ?string $model = Invoice::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'Sales';
-    protected static ?string $pluralLabel = 'Invoice';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationGroup = 'Purchase';
+    protected static ?string $pluralLabel = 'Purchase Invoice';
+    protected static ?int $navigationSort = 4;
     public static function form(Form $form): Form
     {
         return $form
@@ -100,7 +105,7 @@ class InvoiceResource extends Resource
                 Grid::make(4)
                     ->schema([
                         Select::make('document_type')
-                            ->label('Invoice Type')
+                            ->label('Type')
                             ->options([
                                 'purchase_order' => 'Purchase Order',
                                 'purchase' => 'Purchase',
@@ -116,11 +121,11 @@ class InvoiceResource extends Resource
                             ])->disabled()
                             ->dehydrated(true) // 👈 Force saving to DB
                             ->required()
-                            ->default('invoice') // default selected option
+                            ->default('purchase') // default selected option
                             ->reactive(), // if you want to use it in dependent logic
 
                         DatePicker::make('document_date')
-                            ->label('Invoice Date')
+                            ->label('Purchase Date')
                             ->required()
                             ->default(now()),
                         DatePicker::make('due_date')
@@ -133,7 +138,7 @@ class InvoiceResource extends Resource
                     ->schema([
                         Repeater::make('items')
                             ->relationship('items')
-                            ->label('Invoice Items')
+                            ->label('Items')
                             ->required()
                             ->reactive()
                             // Recalculate invoice totals only once when entire items array updates
@@ -288,7 +293,7 @@ class InvoiceResource extends Resource
                             ->reactive()
                             ->default(0),
                         TextInput::make('discount')
-                            ->label('Invoice Discount')
+                            ->label('Discount')
                             ->placeholder('0') // optional, shows 0 when empty
                             ->numeric()
                             ->default(0)
@@ -424,12 +429,13 @@ class InvoiceResource extends Resource
     }
 
     /**
-     * Show Only Document Estimate
+     * Show Only Document purchase
      */
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('document_type', 'invoice'); // Only estimates
+            ->where('document_type', 'purchase'); // Only invoices
     }
     public static function table(Table $table): Table
     {
@@ -437,12 +443,12 @@ class InvoiceResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('number')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('billable.name')->label('Billed To')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('type')->sortable(),
                 Tables\Columns\TextColumn::make('document_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('total_amount')->money('INR')->sortable(),
                 Tables\Columns\TextColumn::make('status')->sortable(),
             ])->defaultSort('created_at', 'desc')
+
             ->filters([
                 // Filter by status
                 SelectFilter::make('status')
@@ -639,18 +645,21 @@ class InvoiceResource extends Resource
                 ]),
             ]);
     }
+
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
+
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListInvoices::route('/'),
-            'create' => Pages\CreateInvoice::route('/create'),
-            'edit' => Pages\EditInvoice::route('/{record}/edit'),
+            'index' => Pages\ListPurchases::route('/'),
+            'create' => Pages\CreatePurchase::route('/create'),
+            'edit' => Pages\EditPurchase::route('/{record}/edit'),
         ];
     }
 }
