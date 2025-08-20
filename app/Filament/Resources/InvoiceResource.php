@@ -19,7 +19,15 @@ use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use TomatoPHP\FilamentDocs\Filament\Actions\DocumentAction;
+use TomatoPHP\FilamentDocs\Filament\Resources\DocumentResource\Pages\PrintDocument;
 use TomatoPHP\FilamentDocs\Services\Contracts\DocsVar;
+use TomatoPHP\FilamentDocs\Filament\Actions\Table\PrintAction;
+
+use FilamentTiptapEditor\TiptapEditor;
+use TomatoPHP\FilamentDocs\Facades\FilamentDocs;
+
+use TomatoPHP\FilamentDocs\Models\Document;
+use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
 class InvoiceResource extends Resource
 {
     protected static ?string $model = Invoice::class;
@@ -386,49 +394,172 @@ class InvoiceResource extends Resource
                 //
             ])
             ->actions([
-                // 👇 Add Document Action
-                DocumentAction::make()
-                    ->templateId(4) // 👈 templateId passed here
-                    ->vars(fn($record) => [
-                        DocsVar::make('$INVOICE_NUMBER')->value($record->invoice_number),
-                        DocsVar::make('$INVOICE_DATE')->value(Carbon::parse($record->invoice_date)->format('d-m-Y')),
-                        DocsVar::make('$PLACE_OF_SUPPLY')->value($record->place_of_supply ?? ''),
 
-                        DocsVar::make('$ACCOUNT_NAME')->value($record->billable->name ?? ''),
-                        DocsVar::make('$ACCOUNT_ADDRESS')->value($record->billable->address ?? ''),
-                        DocsVar::make('$ACCOUNT_PHONE')->value($record->billable->phone ?? ''),
-                        DocsVar::make('$ACCOUNT_GSTIN')->value($record->billable->gstin ?? ''),
-                        DocsVar::make('$ACCOUNT_STATE')->value($record->billable->state ?? ''),
+                // 👇 Generate (or regenerate) and then View
+                Action::make('generateAndViewDocument')
+                    ->label('View Document')
+                    ->color('info')
+                    ->icon('heroicon-s-eye')
+                    ->modalHeading('View Document')
+                    ->modalContent(function ($record) {
+                        // 1) Fetch template
+                        $template = DocumentTemplate::find(4);
+                        $templateBody = (string) ($template->body ?? '');
 
-                        DocsVar::make('$SUB_TOTAL')->value(
-                            number_format(
-                                $record->items->sum(fn($item) => (float) $item->unit_price * (float) $item->quantity),
-                                2
-                            )
-                        ),
-                        DocsVar::make('$DISCOUNT')->value(number_format($record->discount, 2)),
-                        DocsVar::make('$TOTAL_AMOUNT')->value(number_format($record->total_amount, 2)),
-                        DocsVar::make('$AMOUNT_RECEIVED')->value(number_format($record->amount_received, 2)),
-                        DocsVar::make('$AMOUNT_BALANCE')->value(number_format($record->total_amount - $record->amount_received, 2)),
-                        DocsVar::make('$YOU_SAVED')->value(number_format($record->discount, 2)),
+                        // 2) Build replacements
+                        $itemsHtml = $record->items->map(function ($item, $index) {
+                            return "<tr>
+                <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
+                <td style='padding:6px;'>{$item->product->name}</td>
+                <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
+            </tr>";
+                        })->implode('');
 
-                        DocsVar::make('$AMOUNT_IN_WORDS')->value(\NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount)),
+                        $map = [
+                            '$INVOICE_NUMBER' => (string) $record->invoice_number,
+                            '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
+                            '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
 
-                        DocsVar::make('$ITEMS')->value(
-                            $record->items->map(function ($item, $index) {
-                                return "<tr>
-                    <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
-                    <td style='padding:6px;'>{$item->product->name}</td>
-                    <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
-                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
-                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
-                    <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
-                </tr>";
-                            })->implode('')
-                        ),
-                    ]),
+                            '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
+                            '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
+                            '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
+                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
+                            '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
 
-                Tables\Actions\ViewAction::make(),
+                            '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
+                            '$DISCOUNT' => number_format($record->discount, 2),
+                            '$TOTAL_AMOUNT' => number_format($record->total_amount, 2),
+                            '$AMOUNT_RECEIVED' => number_format($record->amount_received, 2),
+                            '$AMOUNT_BALANCE' => number_format($record->total_amount - $record->amount_received, 2),
+                            '$YOU_SAVED' => number_format($record->discount, 2),
+
+                            '$AMOUNT_IN_WORDS' => \NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount),
+
+                            '$ITEMS' => $itemsHtml,
+                        ];
+
+                        // 3) Replace vars inside template HTML
+                        $body = $templateBody;
+                        foreach ($map as $key => $value) {
+                            $body = str_replace($key, (string) $value, $body);
+                        }
+
+                        // 4) Delete old document if exists
+                        if (!empty($record->document_id)) {
+                            Document::where('id', $record->document_id)->delete();
+                        }
+
+                        // 5) Create new document
+                        $document = Document::create([
+                            'document_template_id' => 4,
+                            'model_type' => Invoice::class,
+                            'model_id' => $record->id,
+                            'body' => $body,
+                        ]);
+
+                        // 6) Update invoice with new document_id
+                        $record->document_id = $document->id;
+                        $record->save();
+
+                        // 7) Show document preview inside modal
+                        return view('filament-docs::print', ['record' => $document]);
+                    })
+                    ->iconButton()
+                    ->tooltip('View Document'),
+
+
+                // ✅ Generate and then Print (with print preview)
+                Action::make('generateAndPrintDocument')
+                    ->label('Print Document')
+                    ->color('warning')
+                    ->icon('heroicon-s-printer')
+                    ->action(function ($record, $livewire) {
+                        // 1) Fetch template
+                        $template = DocumentTemplate::find(4);
+                        $templateBody = (string) ($template->body ?? '');
+
+                        // 2) Build replacements
+                        $itemsHtml = $record->items->map(function ($item, $index) {
+                            return "<tr>
+                <td style='padding:6px; text-align:center;'>" . ($index + 1) . "</td>
+                <td style='padding:6px;'>{$item->product->name}</td>
+                <td style='padding:6px; text-align:center;'>{$item->quantity}</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->unit_price, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->discount, 2) . "</td>
+                <td style='padding:6px; text-align:center;'>₹" . number_format($item->total_amount, 2) . "</td>
+            </tr>";
+                        })->implode('');
+
+                        $map = [
+                            '$INVOICE_NUMBER' => (string) $record->invoice_number,
+                            '$INVOICE_DATE' => Carbon::parse($record->invoice_date)->format('d-m-Y'),
+                            '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
+
+                            '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
+                            '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
+                            '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
+                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gstin ?? ''),
+                            '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
+
+                            '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
+                            '$DISCOUNT' => number_format($record->discount, 2),
+                            '$TOTAL_AMOUNT' => number_format($record->total_amount, 2),
+                            '$AMOUNT_RECEIVED' => number_format($record->amount_received, 2),
+                            '$AMOUNT_BALANCE' => number_format($record->total_amount - $record->amount_received, 2),
+                            '$YOU_SAVED' => number_format($record->discount, 2),
+
+                            '$AMOUNT_IN_WORDS' => \NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($record->total_amount),
+
+                            '$ITEMS' => $itemsHtml,
+                        ];
+
+                        // 3) Replace vars inside template HTML
+                        $body = $templateBody;
+                        foreach ($map as $key => $value) {
+                            $body = str_replace($key, (string) $value, $body);
+                        }
+
+                        // 4) Delete old document if exists
+                        if (!empty($record->document_id)) {
+                            Document::where('id', $record->document_id)->delete();
+                        }
+
+                        // 5) Create new document
+                        $document = Document::create([
+                            'document_template_id' => 4,
+                            'model_type' => Invoice::class,
+                            'model_id' => $record->id,
+                            'body' => $body,
+                        ]);
+
+                        // 6) Update invoice with new document_id
+                        $record->document_id = $document->id;
+                        $record->save();
+
+                        // 7) Trigger print preview with hidden iframe
+                        $url = PrintDocument::getUrl(['record' => $document->id]);
+
+                        $livewire->js(<<<JS
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.src = "{$url}";
+            document.body.appendChild(iframe);
+            iframe.onload = function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            };
+        JS);
+                    })
+                    ->iconButton()
+                    ->tooltip('Print Document'),
+
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

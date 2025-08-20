@@ -24,6 +24,7 @@ class Invoice extends Model
         'total_amount',
         'status',
         'notes',
+        'document_id',
         'created_by',
     ];
 
@@ -49,6 +50,11 @@ class Invoice extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function document()
+    {
+        return $this->belongsTo(Document::class, 'document_id');
     }
 
     /**
@@ -80,6 +86,16 @@ class Invoice extends Model
 
                 $invoice->invoice_number = $prefix . $datePart . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
             }
+        });
+
+        // 🗑️ Delete linked document when invoice is deleted
+        static::deleting(function ($invoice) {
+            if ($invoice->document) {
+                $invoice->document->delete();
+            }
+
+            // (Optional) also delete invoice items
+            $invoice->items()->delete();
         });
     }
 }
