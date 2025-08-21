@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\User;
+use App\Observers\UserObserver;
 use App\Models\StoreInventory;
 use App\Models\Inventory;
 use App\Observers\StoreInventoryObserver;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        User::observe(UserObserver::class);
         StoreInventory::observe(StoreInventoryObserver::class);
         Inventory::observe(InventoryObserver::class);
         // FilamentDocs::header('filament.header');
