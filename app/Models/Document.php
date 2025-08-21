@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Traits\HasRoles;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
 
 class Document extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRoles;
     protected $fillable = [
         'ref',
         'model_type',
