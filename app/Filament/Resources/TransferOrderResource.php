@@ -124,7 +124,7 @@ class TransferOrderResource extends Resource
                             ])->disabled()
                             ->dehydrated(true) // 👈 Force saving to DB
                             ->required()
-                            ->default('transfer') // default selected option
+                            ->default('transfer_order') // default selected option
                             ->reactive(), // if you want to use it in dependent logic
 
                         DatePicker::make('document_date')
@@ -445,10 +445,9 @@ class TransferOrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('number')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('billable.name')->label('Billed To')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),
-                Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
-                Tables\Columns\TextColumn::make('total_amount')->money('INR')->sortable(),
+                Tables\Columns\TextColumn::make('billable.name')->label('Source Store')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('destinationStore.name')->label('Destination Store')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),                                
                 Tables\Columns\TextColumn::make('status')->sortable(),
             ])->defaultSort('created_at', 'desc')
 

@@ -32,8 +32,14 @@ return new class extends Migration {
                 'transfer_order',
             ])->default('invoice');
 
-            // Polymorphic billing party: customer or vendor
-            $table->morphs('billable');
+            // Polymorphic billing party: customer, vendor OR source store
+            $table->morphs('billable'); // billable_id + billable_type
+          
+            // Destination store (nullable, only for transfer orders)
+            $table->foreignId('destination_store_id')
+                ->nullable()
+                ->constrained('stores')
+                ->nullOnDelete();
 
             // Dates
             $table->date('document_date'); // works for invoice_date, po_date, etc.

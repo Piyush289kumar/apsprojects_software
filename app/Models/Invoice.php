@@ -17,6 +17,7 @@ class Invoice extends Model
         'document_type',
         'billable_id',
         'billable_type',
+        'destination_store_id',
         'document_date',
         'due_date',
         'place_of_supply',
@@ -50,6 +51,11 @@ class Invoice extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function destinationStore()
+    {
+        return $this->belongsTo(Store::class, 'destination_store_id');
     }
 
     public function document()
