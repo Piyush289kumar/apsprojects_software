@@ -29,7 +29,6 @@ class StoreInventoryResource extends Resource
         return $form
             ->schema([
 
-
                 Forms\Components\Select::make('store_id')
                     ->relationship('store', 'name')
                     ->required(),

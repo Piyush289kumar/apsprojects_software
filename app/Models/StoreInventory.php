@@ -58,6 +58,24 @@ class StoreInventory extends Model
         });
     }
 
+
+    /**
+     * Safely increase stock.
+     */
+    public static function increaseStock(int $storeId, int $productId, int $quantity): bool
+    {
+        $storeInventory = self::firstOrCreate(
+            ['store_id' => $storeId, 'product_id' => $productId],
+            ['quantity' => 0]
+        );
+
+        $storeInventory->quantity += $quantity;
+        $storeInventory->save();
+
+        return true;
+    }
+
+
     /**
      * Safely decrease stock.
      */
