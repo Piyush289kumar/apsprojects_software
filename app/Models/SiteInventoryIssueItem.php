@@ -22,12 +22,27 @@ class SiteInventoryIssueItem extends Model
 
     public function issue()
     {
-        return $this->belongsTo(SiteInventoryIssue::class);
+        return $this->belongsTo(SiteInventoryIssue::class, 'site_inventory_issue_id');
     }
 
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    protected static function booted()
+    {
+        static::created(function (SiteInventoryIssueItem $item) {
+            // Get the parent issue
+            $issue = $item->issue;
+
+            // Decrement stock for this item only
+            StoreInventory::decreaseStock(
+                $issue->store_id,
+                $item->product_id,
+                $item->quantity
+            );
+        });
     }
 
 }
