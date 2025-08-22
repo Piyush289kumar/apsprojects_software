@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PurchaseResource\Pages;
+use App\Filament\Resources\TransferOrderResource\Pages;
 use App\Filament\Resources\EstimateResource\RelationManagers;
 use App\Models\Estimate;
 use Filament\Forms;
@@ -30,13 +30,13 @@ use TomatoPHP\FilamentDocs\Models\Document;
 use TomatoPHP\FilamentDocs\Models\DocumentTemplate;
 use Filament\Tables\Filters\Filter;
 
-class PurchaseResource extends Resource
+class TransferOrderResource extends Resource
 {
     protected static ?string $model = Invoice::class;
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Purchase';
-    protected static ?string $pluralLabel = 'Purchase Invoice';
-    protected static ?int $navigationSort = 4;
+    protected static ?string $pluralLabel = 'Transfer Order Invoice';
+    protected static ?int $navigationSort = 5;
     public static function form(Form $form): Form
     {
         return $form
@@ -46,6 +46,7 @@ class PurchaseResource extends Resource
                         TextInput::make('number')
                             ->label(fn(callable $get) => match ($get('document_type')) {
                                 'purchase_order' => 'PO Number',
+                                'transfer_order' => 'Transfer Order Number',
                                 'purchase' => 'Purchase Number',
                                 'invoice' => 'Invoice Number',
                                 'estimate' => 'Estimate Number',
@@ -109,6 +110,7 @@ class PurchaseResource extends Resource
                             ->label('Type')
                             ->options([
                                 'purchase_order' => 'Purchase Order',
+                                'transfer_order' => 'Transfer Order Number',
                                 'purchase' => 'Purchase',
                                 'invoice' => 'Invoice',
                                 'estimate' => 'Estimate',
@@ -122,11 +124,11 @@ class PurchaseResource extends Resource
                             ])->disabled()
                             ->dehydrated(true) // 👈 Force saving to DB
                             ->required()
-                            ->default('purchase') // default selected option
+                            ->default('transfer') // default selected option
                             ->reactive(), // if you want to use it in dependent logic
 
                         DatePicker::make('document_date')
-                            ->label('Purchase Date')
+                            ->label('Transfer Date')
                             ->required()
                             ->default(now()),
                         DatePicker::make('due_date')
@@ -430,13 +432,13 @@ class PurchaseResource extends Resource
     }
 
     /**
-     * Show Only Document purchase
+     * Show Only Document transfer_order
      */
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('document_type', 'purchase'); // Only invoices
+            ->where('document_type', 'transfer_order'); // Only invoices
     }
     public static function table(Table $table): Table
     {
@@ -647,7 +649,8 @@ class PurchaseResource extends Resource
                 ]),
             ]);
     }
-    
+
+
     public static function getRelations(): array
     {
         return [
@@ -658,9 +661,9 @@ class PurchaseResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPurchases::route('/'),
-            'create' => Pages\CreatePurchase::route('/create'),
-            'edit' => Pages\EditPurchase::route('/{record}/edit'),
+            'index' => Pages\ListTransferOrders::route('/'),
+            'create' => Pages\CreateTransferOrder::route('/create'),
+            'edit' => Pages\EditTransferOrder::route('/{record}/edit'),
         ];
     }
 }

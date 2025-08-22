@@ -82,6 +82,7 @@ class Invoice extends Model
                     'proforma' => 'PRF',
                     'receipt' => 'RCPT',
                     'payment_voucher' => 'PV',
+                    'transfer_order' => 'TRF', // ✅ Stock transfer prefix
                 ];
 
                 $prefix = $prefixMap[$invoice->document_type] ?? 'DOC';

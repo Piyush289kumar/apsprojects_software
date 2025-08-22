@@ -29,6 +29,7 @@ return new class extends Migration {
                 'proforma',
                 'receipt',
                 'payment_voucher',
+                'transfer_order',
             ])->default('invoice');
 
             // Polymorphic billing party: customer or vendor

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PurchaseRequisitionResource\Pages;
 use App\Filament\Resources\PurchaseRequisitionResource\RelationManagers;
+use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\PurchaseRequisition;
 use App\Models\PurchaseRequisitionItem;
@@ -250,7 +251,7 @@ class PurchaseRequisitionResource extends Resource
 
                             PurchaseOrder::createFromRequisition($record, $vendorId, Auth::user());
 
-                            $invoice = \App\Models\Invoice::create([
+                            $invoice = Invoice::create([
                                 'document_type' => 'purchase_order',
                                 'billable_id' => $vendorId,
                                 'billable_type' => Vendor::class,
@@ -261,12 +262,10 @@ class PurchaseRequisitionResource extends Resource
                             ]);
 
                         } elseif ($data['method'] === 'transfer') {
-                            $fromStoreId = $data['source_store_id'] ?? null;
+                            $fromStoreId = $data['source_store_id'] ?? null;                            
 
-                            TransferOrder::createFromRequisition($record, $fromStoreId, Auth::user());
-
-                            $invoice = \App\Models\Invoice::create([
-                                'document_type' => 'purchase_order',
+                            $invoice = Invoice::create([
+                                'document_type' => 'transfer_order',
                                 'billable_id' => $fromStoreId,
                                 'billable_type' => Store::class,
                                 'document_date' => now(),
