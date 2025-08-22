@@ -24,38 +24,34 @@ class StockTransfer extends Model
 
     protected static function booted()
     {
-        static::updated(function ($stockTransfer) {
-            // Run only if status changed to 'approved'
-            if ($stockTransfer->isDirty('status') && $stockTransfer->status === 'approved') {
-                DB::transaction(function () use ($stockTransfer) {
-                    // Decrease quantity from fromStore inventory
-                    $fromInventory = \App\Models\StoreInventory::where('store_id', $stockTransfer->from_store_id)
-                        ->where('product_id', $stockTransfer->product_id)
-                        ->first();
+        static::updated(function (StockTransfer $transfer) {
+            // Only adjust stock if status changed to 'approved' AND approved_by is set
+            if (
+                $transfer->isDirty('status')
+                && $transfer->status === 'approved'
+                && $transfer->approved_by
+            ) {
 
-                    if ($fromInventory) {
-                        // Prevent negative quantities
-                        $fromInventory->quantity = max(0, $fromInventory->quantity - $stockTransfer->quantity);
-                        $fromInventory->save();
-                    }
-
-                    // Increase quantity in toStore inventory, create if not exists
-                    $toInventory = \App\Models\StoreInventory::firstOrCreate(
-                        [
-                            'store_id' => $stockTransfer->to_store_id,
-                            'product_id' => $stockTransfer->product_id,
-                        ],
-                        [
-                            'quantity' => 0,
-                        ]
+                \DB::transaction(function () use ($transfer) {
+                    // Decrement from-store
+                    StoreInventory::decreaseStock(
+                        $transfer->from_store_id,
+                        $transfer->product_id,
+                        $transfer->quantity
                     );
 
-                    $toInventory->quantity += $stockTransfer->quantity;
-                    $toInventory->save();
+                    // Increment to-store
+                    StoreInventory::increaseStock(
+                        $transfer->to_store_id,
+                        $transfer->product_id,
+                        $transfer->quantity
+                    );
                 });
             }
         });
     }
+
+
 
     public function fromStore()
     {
