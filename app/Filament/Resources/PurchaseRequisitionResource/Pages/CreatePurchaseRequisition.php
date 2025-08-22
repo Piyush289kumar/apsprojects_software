@@ -11,11 +11,4 @@ class CreatePurchaseRequisition extends CreateRecord
 {
     protected static string $resource = PurchaseRequisitionResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        // Automatically set the logged-in user's ID
-        $data['requested_by'] = Auth::id();
-
-        return $data;
-    }
 }

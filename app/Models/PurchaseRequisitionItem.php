@@ -14,6 +14,9 @@ class PurchaseRequisitionItem extends Model
         'product_id',
         'quantity',
         'approved_quantity',
+        'purchase_price',
+        'approved_price',
+        'total_price',
         'uom',
         'note',
     ];

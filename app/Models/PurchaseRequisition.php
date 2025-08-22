@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Traits\HasRoles;
 
 class PurchaseRequisition extends Model
@@ -20,7 +21,7 @@ class PurchaseRequisition extends Model
         'priority',
         'approved_by',
         'approved_at',
-        'meta',
+        'meta',        
     ];
 
     protected $casts = [
@@ -30,7 +31,8 @@ class PurchaseRequisition extends Model
 
     public function items()
     {
-        return $this->hasMany(PurchaseRequisitionItem::class);
+        return $this->hasMany(PurchaseRequisitionItem::class)
+            ->whereNotNull('product_id'); // only save real items
     }
 
     public function store()
@@ -47,4 +49,16 @@ class PurchaseRequisition extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->requested_by)) {
+                $model->requested_by = Auth::id();
+            }
+        });
+    }
+
 }

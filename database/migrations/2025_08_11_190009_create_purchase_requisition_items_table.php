@@ -15,7 +15,10 @@ return new class extends Migration {
             $table->foreignId('purchase_requisition_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->integer('quantity')->unsigned();
+            $table->decimal('purchase_price', 12, 2)->nullable();
             $table->integer('approved_quantity')->nullable();
+            $table->decimal('approved_price', 12, 2)->nullable();            
+            $table->decimal('total_price', 12, 2)->nullable();
             $table->string('uom')->nullable();
             $table->text('note')->nullable();
             $table->timestamps();

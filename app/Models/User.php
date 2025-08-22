@@ -45,6 +45,7 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('Administrator'); // or 'admin' if that’s your role name
+        return $this->hasRole(['Administrator', 'Developer', 'admin']);
     }
+    
 }
