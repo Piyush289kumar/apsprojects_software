@@ -76,19 +76,52 @@ class SiteInventoryIssueResource extends Resource
                         ->schema([
                             Select::make('product_id')
                                 ->label('Product')
-                                ->relationship('product', 'name') // works because SiteInventoryIssueItem has product()
+                                ->relationship('product', 'name')
                                 ->required()
-                                ->searchable(),
+                                ->searchable()
+                                ->reactive(), // reactive so we can get its value for max
 
                             TextInput::make('quantity')
                                 ->numeric()
                                 ->minValue(1)
-                                ->required(),
-                            Textarea::make('notes')
-                                ->rows(1),
+                                ->required()
+                                ->maxValue(function (callable $get, $set, $record) {
+                                    $storeId = $get('../../store_id'); // get the store_id from the parent form
+                                    $productId = $get('product_id');
+
+                                    if (!$storeId || !$productId) {
+                                        return null; // no limit if store or product not selected yet
+                                    }
+
+                                    // fetch current stock from StoreInventory
+                                    $inventory = \App\Models\StoreInventory::where('store_id', $storeId)
+                                        ->where('product_id', $productId)
+                                        ->first();
+
+                                    return $inventory?->quantity ?? 0; // maxValue = available stock
+                                })
+                                ->helperText(function (callable $get) {
+                                    $storeId = $get('../../store_id');
+                                    $productId = $get('product_id');
+
+                                    if (!$storeId || !$productId) {
+                                        return null;
+                                    }
+
+                                    $inventory = \App\Models\StoreInventory::where('store_id', $storeId)
+                                        ->where('product_id', $productId)
+                                        ->first();
+
+                                    $qty = $inventory?->quantity ?? 0;
+
+                                    return "Available stock: {$qty}";
+                                }),
+
+                            Textarea::make('notes')->rows(1),
                         ])
                         ->columns(3)
                         ->required(),
+
                 ]),
             ]);
     }
