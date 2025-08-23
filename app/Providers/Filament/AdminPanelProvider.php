@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->databaseNotifications()
-            // ->databaseNotificationsPolling('30s')
+            //->databaseNotificationsPolling('30s')
             ->sidebarCollapsibleOnDesktop()
             ->collapsedSidebarWidth('9rem')
             ->sidebarWidth('16rem');

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Observers\UserObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use \TomatoPHP\FilamentLanguageSwitcher\Traits\InteractsWithLanguages;
 
+#[ObservedBy([UserObserver::class])]
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles, InteractsWithLanguages;
@@ -47,5 +50,5 @@ class User extends Authenticatable
     {
         return $this->hasRole(['Administrator', 'Developer', 'admin']);
     }
-    
+
 }

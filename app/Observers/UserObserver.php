@@ -3,10 +3,8 @@
 namespace App\Observers;
 
 use App\Models\User;
-use App\Notifications\UserNotification;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification;
-use Filament\Notifications\Notification as FilamentNotification;
 
 class UserObserver
 {
@@ -15,7 +13,11 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        //
+        $receipent = Auth::user();
+        Notification::make()
+            ->title('User Created')
+            ->body("Some String")
+            ->sendToDatabase($receipent);
     }
 
     /**
@@ -23,14 +25,8 @@ class UserObserver
      */
     public function updated(User $user): void
     {
-        // Send to the updated user (or Auth::user() if you prefer)
-        FilamentNotification::make()
-            ->title('Profile Updated')
-            ->body('Your profile details have been successfully updated.')
-            ->success()
-            ->sendToDatabase($user); // saves in notifications table
+        //
     }
-
 
     /**
      * Handle the User "deleted" event.
