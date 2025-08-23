@@ -4,6 +4,10 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\CompanyInfoWidget;
 use App\Filament\Widgets\DashboardStats;
+use App\Filament\Widgets\LowStockWidget;
+use App\Filament\Widgets\MonthlyPurchaseTrendWidget;
+use App\Filament\Widgets\PurchaseAnalyticsWidget;
+use App\Filament\Widgets\TopVendorskWidget;
 use Filament\Http\Middleware\Authenticate;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -45,6 +49,10 @@ class AdminPanelProvider extends PanelProvider
                     // Widgets\FilamentInfoWidget::class,
                 CompanyInfoWidget::class,
                 DashboardStats::class,
+                LowStockWidget::class, // 👈 Add here
+                PurchaseAnalyticsWidget::class,
+                TopVendorskWidget::class,
+                MonthlyPurchaseTrendWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
