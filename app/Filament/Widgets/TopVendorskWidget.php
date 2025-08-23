@@ -30,7 +30,10 @@ class TopVendorskWidget extends ChartWidget
                     'backgroundColor' => '#3b82f6',
                 ],
             ],
-            'labels' => $data->map(fn($row) => $row->billable->name)->toArray(),
+            'labels' => $data
+                ->filter(fn($row) => $row->billable !== null)
+                ->map(fn($row) => $row->billable->name)
+                ->toArray(),
         ];
     }
 
