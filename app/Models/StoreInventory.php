@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Notifications\StockLowNotification;
+use App\Observers\StoreInventoryObserver;
 use DB;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Inventory;
 use Spatie\Permission\Traits\HasRoles;
 
+#[ObservedBy([StoreInventoryObserver::class])]
 class StoreInventory extends Model
 {
     use HasFactory, HasRoles;
@@ -57,32 +60,6 @@ class StoreInventory extends Model
                     'avg_selling_price' => $avgSellingPrice,
                 ]
             );
-
-
-            // --- Stock Low Notification ---
-            $product = $storeInventory->product;
-            if ($product && $storeInventory->quantity <= $product->min_stock) {
-                // Check if notification already exists
-                $alreadyNotified = DB::table('notifications')
-                    ->where('type', StockLowNotification::class)
-                    ->whereJsonContains('data->title', $product->name)
-                    ->exists();
-
-                if (!$alreadyNotified) {
-                    // Send to all users or only admins
-                    $users = User::get();
-
-                    foreach ($users as $user) {
-                        $user->notify(new StockLowNotification(
-                            $product->name,
-                            $storeInventory->quantity,
-                            $product->min_stock
-                        ));
-                    }
-                }
-            }
-
-
 
         });
     }

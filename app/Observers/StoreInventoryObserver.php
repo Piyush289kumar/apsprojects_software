@@ -1,9 +1,11 @@
 <?php
-
 namespace App\Observers;
 
 use App\Models\StoreInventory;
 use App\Services\InventoryLogger;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class StoreInventoryObserver
 {
@@ -24,9 +26,9 @@ class StoreInventoryObserver
                     $inventory->quantity
                 ),
             ]);
-
-            request()->merge(['skip_central_log' => true]);
         }
+
+        $this->checkLowStock($inventory);
     }
 
     public function updated(StoreInventory $inventory): void
@@ -54,10 +56,10 @@ class StoreInventoryObserver
                         $diff
                     ),
                 ]);
-
-                request()->merge(['skip_central_log' => true]);
             }
         }
+
+        $this->checkLowStock($inventory);
     }
 
     public function deleted(StoreInventory $inventory): void
@@ -78,8 +80,49 @@ class StoreInventoryObserver
                     $qty
                 ),
             ]);
-
-            request()->merge(['skip_central_log' => true]);
         }
     }
+
+    /**
+     * Check low stock and notify all users via Filament notifications.
+     */
+    protected static array $notifiedThisRequest = [];
+
+    protected function checkLowStock(StoreInventory $inventory)
+    {
+        $product = $inventory->product;
+        $storeName = $inventory->store->name;
+
+        if ($product && $inventory->quantity <= $product->min_stock) {
+
+            $key = "{$product->id}_{$inventory->store_id}";
+
+            // Skip if already notified in this request
+            if (isset(self::$notifiedThisRequest[$key])) {
+                return;
+            }
+
+            // Check if a notification already exists in database
+            $alreadyNotified = DB::table('notifications')
+                ->where('type', \Filament\Notifications\DatabaseNotification::class)
+                ->whereJsonContains('data->title', "Stock Low: {$product->name}")
+                ->whereJsonContains('data->body', "store '{$storeName}'")
+                ->exists();
+
+            if (!$alreadyNotified) {
+                $users = User::all()->filter(fn($user) => $user->isAdmin() || $user->isStoreManager());
+
+                foreach ($users as $user) {
+                    Notification::make()
+                        ->title("Stock Low: {$product->name}")
+                        ->body("Current stock ({$inventory->quantity}) is below minimum threshold ({$product->min_stock}) in store '{$storeName}'")
+                        ->sendToDatabase($user);
+                }
+
+                // Mark as notified for this request
+                self::$notifiedThisRequest[$key] = true;
+            }
+        }
+    }
+
 }
