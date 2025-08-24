@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Filament\Resources;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -37,7 +37,6 @@ class InvoiceResource extends Resource
     {
         return static::getModel()::where('document_type', 'invoice')->count();
     }
-
     // 🔹 Badge color (always primary in your case)
     public static function getNavigationBadgeColor(): ?string
     {
@@ -45,7 +44,6 @@ class InvoiceResource extends Resource
     }
     // (Optional) Add tooltip to the badge
     protected static ?string $navigationBadgeTooltip = 'Total number of invoices';
-
     public static function form(Form $form): Form
     {
         return $form
@@ -70,7 +68,6 @@ class InvoiceResource extends Resource
                             ->readonly()
                             ->placeholder('Will be auto-generated')
                             ->unique(ignoreRecord: true),
-
                         Select::make('billable_type')
                             ->label('Bill To')
                             ->options([
@@ -109,9 +106,7 @@ class InvoiceResource extends Resource
                             ->createOptionUsing(function ($data) {
                                 return \App\Models\Vendor::create($data)->id;
                             }),
-
                     ]),
-
                 Grid::make(4)
                     ->schema([
                         Select::make('document_type')
@@ -133,7 +128,6 @@ class InvoiceResource extends Resource
                             ->required()
                             ->default('invoice') // default selected option
                             ->reactive(), // if you want to use it in dependent logic
-
                         DatePicker::make('document_date')
                             ->label('Invoice Date')
                             ->required()
@@ -437,7 +431,6 @@ class InvoiceResource extends Resource
             'total_amount' => round($totalAmountAfterDiscount, 2),
         ]);
     }
-
     /**
      * Show Only Document Estimate
      */
@@ -450,12 +443,19 @@ class InvoiceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('number')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('number')->sortable()->searchable()->label('Invoice No.'),
                 Tables\Columns\TextColumn::make('billable.name')->label('Billed To')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('type')->sortable(),
-                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),
-                Tables\Columns\TextColumn::make('due_date')->date()->sortable(),
+                Tables\Columns\TextColumn::make('document_date')->date()->sortable()->label('Invoice Data'),
+                Tables\Columns\TextColumn::make('due_date')->date()->sortable()->label('Due Date'),
                 Tables\Columns\TextColumn::make('total_amount')->money('INR')->sortable(),
+                Tables\Columns\TextColumn::make('amount_received')
+                    ->label('Amount Received')
+                    ->money('INR')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('balance')
+                    ->label('Balance Due')
+                    ->money('INR')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('status')->sortable(),
             ])->defaultSort('created_at', 'desc')
             ->filters([
@@ -480,7 +480,6 @@ class InvoiceResource extends Resource
                             ->when($data['document_date_from'], fn($q, $val) => $q->where('document_date', '>=', $val))
                             ->when($data['document_date_to'], fn($q, $val) => $q->where('document_date', '<=', $val));
                     }),
-
                 // Filter by due date range
                 Filter::make('due_date')
                     ->form([
@@ -492,7 +491,6 @@ class InvoiceResource extends Resource
                             ->when($data['due_date_from'], fn($q, $val) => $q->where('due_date', '>=', $val))
                             ->when($data['due_date_to'], fn($q, $val) => $q->where('due_date', '<=', $val));
                     }),
-
                 // Filter by total_amount range
                 Filter::make('total_amount')
                     ->form([
@@ -645,6 +643,66 @@ class InvoiceResource extends Resource
                     })
                     ->iconButton()
                     ->tooltip('Print Document'),
+                Tables\Actions\Action::make('receivePayment')->label('')->icon('heroicon-m-banknotes')
+                    ->color('success')
+                    ->tooltip('Receive Payment')     // label appears on hover
+                    ->form([
+                        // Show Total, Received, Balance as readonly info
+                        Grid::make(3)->schema([
+                            TextInput::make('total_amount')
+                                ->label('Total Amount')
+                                ->disabled()
+                                ->default(fn($record) => $record->total_amount),
+                            TextInput::make('amount_received')
+                                ->label('Amount Received')
+                                ->disabled()
+                                ->default(fn($record) => $record->amount_received),
+                            TextInput::make('balance')
+                                ->label('Balance Due')
+                                ->disabled()
+                                ->default(fn($record) => number_format($record->balance, 2)),
+                        ]),
+                        // Amount to receive (default = remaining balance)
+                        TextInput::make('amount')
+                            ->label('Amount to Receive')
+                            ->numeric()
+                            ->required()
+                            ->default(fn($record) => number_format($record->balance, 2, '.', ''))
+                            ->maxValue(fn($record) => number_format($record->balance, 2, '.', '')), // prevent overpay
+                        Grid::make(4)->schema([
+                            DatePicker::make('payment_date')
+                                ->default(now())
+                                ->required(),
+                            Select::make('method')
+                                ->options([
+                                    'cash' => 'Cash',
+                                    'bank' => 'Bank Transfer',
+                                    'upi' => 'UPI',
+                                    'cheque' => 'Cheque',
+                                    'card' => 'Card',
+                                ])
+                                ->required(),
+                            TextInput::make('reference_no')->label('Reference No.'),
+                            TextInput::make('notes')->label('Notes'),
+                        ]),
+                    ])
+                    ->action(function ($record, array $data) {
+                        Payment::create([
+                            'invoice_id' => $record->id,
+                            'payable_id' => $record->id,
+                            'payable_type' => Invoice::class,
+                            'type' => 'incoming',
+                            'amount' => $data['amount'],
+                            'payment_date' => $data['payment_date'],
+                            'method' => $data['method'],
+                            'reference_no' => $data['reference_no'] ?? null,
+                            'notes' => $data['notes'] ?? null,
+                            'status' => 'completed',
+                            'received_by' => auth()->id(),
+                            'created_by' => auth()->id(),
+                        ]);
+                    })
+                    ->visible(fn($record) => $record->status !== 'paid'),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -658,7 +716,7 @@ class InvoiceResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\InvoiceResource\RelationManagers\PaymentsRelationManager::class,
         ];
     }
     public static function getPages(): array

@@ -63,6 +63,23 @@ class Invoice extends Model
         return $this->belongsTo(Document::class, 'document_id');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function getAmountReceivedAttribute()
+    {
+        return $this->payments()
+            ->where('status', 'completed')
+            ->sum('amount');
+    }
+
+    public function getBalanceAttribute()
+    {
+        return $this->total_amount - $this->amount_received;
+    }
+
     /**
      * Boot method to auto set created_by and document number
      */
