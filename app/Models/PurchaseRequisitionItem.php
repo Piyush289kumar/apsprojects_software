@@ -12,6 +12,7 @@ class PurchaseRequisitionItem extends Model
     protected $fillable = [
         'purchase_requisition_id',
         'product_id',
+        'vendor_id',
         'quantity',
         'approved_quantity',
         'purchase_price',
@@ -25,7 +26,10 @@ class PurchaseRequisitionItem extends Model
     {
         return $this->belongsTo(PurchaseRequisition::class);
     }
-
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
     public function product()
     {
         return $this->belongsTo(Product::class);
