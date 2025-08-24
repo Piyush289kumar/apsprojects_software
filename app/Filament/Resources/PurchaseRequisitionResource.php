@@ -244,8 +244,7 @@ class PurchaseRequisitionResource extends Resource
                         $invoice = null;
                         // 2. Handle Purchase or Transfer & create Invoice
                         if ($data['method'] === 'purchase') {
-                            $vendorId = $data['vendor_id'] ?? null;
-                            PurchaseOrder::createFromRequisition($record, $vendorId, Auth::user());
+                            $vendorId = $data['vendor_id'] ?? null;                            
                             $invoice = Invoice::create([
                                 'document_type' => 'purchase_order',
                                 'billable_id' => $vendorId,

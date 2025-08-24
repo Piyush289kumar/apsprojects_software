@@ -77,17 +77,17 @@ class Invoice extends Model
             // Generate unique number if not already set
             if (empty($invoice->number)) {
                 $prefixMap = [
-                    'purchase_order' => 'PO',
+                    'purchase_order' => 'PON',
                     'purchase' => 'PCH',
                     'invoice' => 'INV',
                     'estimate' => 'EST',
                     'quotation' => 'QTN',
-                    'credit_note' => 'CN',
-                    'debit_note' => 'DN',
+                    'credit_note' => 'CNN',
+                    'debit_note' => 'DNN',
                     'delivery_note' => 'DLV',
                     'proforma' => 'PRF',
                     'receipt' => 'RCPT',
-                    'payment_voucher' => 'PV',
+                    'payment_voucher' => 'PVN',
                     'transfer_order' => 'TRF', // ✅ Stock transfer prefix
                 ];
 
