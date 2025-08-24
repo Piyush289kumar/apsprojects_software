@@ -28,29 +28,4 @@ class PurchaseOrder extends Model
         return $this->belongsTo(Vendor::class);
     }
 
-    public static function createFromRequisition(PurchaseRequisition $req, $vendorId, $creator)
-    {
-        $po = self::create([
-            'po_number' => 'PO-' . strtoupper(Str::random(8)),
-            'vendor_id' => $vendorId,
-            'store_id' => $req->store_id,
-            'created_by' => $creator->id,
-            'status' => 'draft',
-        ]);
-
-        foreach ($req->items as $item) {
-            $qty = $item->approved_quantity ?? $item->quantity;
-            if ($qty > 0) {
-                $po->items()->create([
-                    'product_id' => $item->product_id,
-                    'quantity' => $qty,
-                    'unit_price' => $item->product->purchase_price ?? 0,
-                ]);
-            }
-        }
-
-        return $po;
-    }
-
-    
 }
