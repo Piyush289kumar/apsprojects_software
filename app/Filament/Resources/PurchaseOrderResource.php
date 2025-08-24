@@ -36,6 +36,22 @@ class PurchaseOrderResource extends Resource
     protected static ?string $navigationGroup = 'Purchase';
     protected static ?string $pluralLabel = 'Purchase Order';
     protected static ?int $navigationSort = 3;
+
+     // 🔹 Show badge count (only invoices where document_type = 'invoice')
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('document_type', 'purchase_order')->count();
+    }
+
+    // 🔹 Badge color (always primary in your case)
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
+    // (Optional) Add tooltip to the badge
+    protected static ?string $navigationBadgeTooltip = 'Total Purchase Orders';
+
+
     public static function form(Form $form): Form
     {
         return $form

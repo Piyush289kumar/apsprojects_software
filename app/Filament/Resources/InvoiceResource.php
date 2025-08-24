@@ -32,6 +32,20 @@ class InvoiceResource extends Resource
     protected static ?string $navigationGroup = 'Sales';
     protected static ?string $pluralLabel = 'Invoice';
     protected static ?int $navigationSort = 2;
+    // 🔹 Show badge count (only invoices where document_type = 'invoice')
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('document_type', 'invoice')->count();
+    }
+
+    // 🔹 Badge color (always primary in your case)
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
+    // (Optional) Add tooltip to the badge
+    protected static ?string $navigationBadgeTooltip = 'Total number of invoices';
+
     public static function form(Form $form): Form
     {
         return $form

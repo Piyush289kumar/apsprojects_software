@@ -37,6 +37,21 @@ class PurchaseResource extends Resource
     protected static ?string $navigationGroup = 'Purchase';
     protected static ?string $pluralLabel = 'Purchase Invoice';
     protected static ?int $navigationSort = 4;
+
+    // 🔹 Show badge count (only invoices where document_type = 'invoice')
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('document_type', 'purchase')->count();
+    }
+
+    // 🔹 Badge color (always primary in your case)
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
+    // (Optional) Add tooltip to the badge
+    protected static ?string $navigationBadgeTooltip = 'Total Purchase Invoices';
+
     public static function form(Form $form): Form
     {
         return $form
@@ -647,7 +662,7 @@ class PurchaseResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [

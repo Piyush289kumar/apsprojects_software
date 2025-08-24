@@ -31,6 +31,22 @@ class PurchaseRequisitionResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Purchase';
     protected static ?int $navigationSort = 2;
+
+    // 🔹 Show badge count 
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('status', 'pending')->count();
+    }
+
+    // 🔹 Badge color (always primary in your case)
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
+    // (Optional) Add tooltip to the badge
+    protected static ?string $navigationBadgeTooltip = 'Total Purchase Requisitions';
+
+
     public static function form(Form $form): Form
     {
         return $form
