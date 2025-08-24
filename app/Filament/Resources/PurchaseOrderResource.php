@@ -335,6 +335,7 @@ class PurchaseOrderResource extends Resource
                 Textarea::make('notes')->label('Additional Notes')->rows(3)->columnSpanFull(),
             ]);
     }
+    
     public static function recalculateInvoiceTotals(callable $set, callable $get): void
     {
         $items = $get('items') ?? [];

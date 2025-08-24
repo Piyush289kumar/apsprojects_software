@@ -155,10 +155,10 @@ class PurchaseResource extends Resource
 
                         Select::make('purchase_order_id')
                             ->label('Load from Purchase Order')
-                            ->options(Invoice::where('document_type', 'purchase_order')->pluck('number', 'id'))
+                            ->options(Invoice::where('document_type', 'purchase_order')->latest('id')->pluck('number', 'id'))
                             ->searchable()
                             ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set) {
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 if ($state) {
                                     $po = Invoice::with('items')->find($state);
                                     if ($po) {
@@ -168,8 +168,22 @@ class PurchaseResource extends Resource
                                             $set('billable_id', $po->billable_id);
                                         }
 
-                                        // 🔹 Auto-fill items
-                                        $set('items', $po->items->map(function ($item) {
+                                        // 🔹 First fill with (qty - 1)
+                                        $tempItems = $po->items->map(function ($item) {
+                                            return [
+                                                'product_id' => $item->product_id,
+                                                'quantity' => max(0, $item->quantity - 1), // avoid negative
+                                                'unit_price' => $item->unit_price,
+                                                'cgst_rate' => $item->cgst_rate,
+                                                'sgst_rate' => $item->sgst_rate,
+                                                'igst_rate' => $item->igst_rate,
+                                            ];
+                                        })->toArray();
+
+                                        $set('items', $tempItems);
+
+                                        // 🔹 Then restore correct qty (this triggers recalcs)
+                                        $finalItems = $po->items->map(function ($item) {
                                             return [
                                                 'product_id' => $item->product_id,
                                                 'quantity' => $item->quantity,
@@ -178,10 +192,15 @@ class PurchaseResource extends Resource
                                                 'sgst_rate' => $item->sgst_rate,
                                                 'igst_rate' => $item->igst_rate,
                                             ];
-                                        })->toArray());
+                                        })->toArray();
+
+                                        $set('items', $finalItems);
+
+                                        // 🔹 Finally recalc invoice totals
+                                        InvoiceResource::recalculateInvoiceTotals($set, $get);
                                     }
                                 }
-                            })->columnSpan(1),
+                            }),
 
                         Repeater::make('items')
                             ->relationship('items')
