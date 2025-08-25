@@ -19,6 +19,7 @@ class LedgerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationGroup = 'Accounting';
     protected static ?string $navigationLabel = 'Ledger Entries';
+    protected static ?int $navigationSort = 6;
 
     public static function form(Form $form): Form
     {

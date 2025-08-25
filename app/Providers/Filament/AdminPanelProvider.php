@@ -2,8 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AccountingStats;
 use App\Filament\Widgets\CompanyInfoWidget;
 use App\Filament\Widgets\DashboardStats;
+use App\Filament\Widgets\LedgerWidget;
 use App\Filament\Widgets\LowStockWidget;
 use App\Filament\Widgets\MonthlyPurchaseTrendWidget;
 use App\Filament\Widgets\PurchaseAnalyticsWidget;
@@ -53,6 +55,9 @@ class AdminPanelProvider extends PanelProvider
                 PurchaseAnalyticsWidget::class,
                 TopVendorskWidget::class,
                 MonthlyPurchaseTrendWidget::class,
+
+                AccountingStats::class,
+                LedgerWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

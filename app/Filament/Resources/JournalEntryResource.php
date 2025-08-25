@@ -18,6 +18,7 @@ class JournalEntryResource extends Resource
     protected static ?string $navigationGroup = 'Accounting';
     protected static ?string $navigationLabel = 'Journal Entries';
 
+    protected static ?int $navigationSort = 8;
     public static function form(Form $form): Form
     {
         return $form->schema([
