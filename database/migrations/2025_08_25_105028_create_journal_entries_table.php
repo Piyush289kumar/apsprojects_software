@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->morphs('journalable'); // link to invoice, payment, etc.
             $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

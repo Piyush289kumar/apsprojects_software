@@ -11,25 +11,22 @@ class Account extends Model
 {
     use HasFactory, SoftDeletes, HasRoles;
 
-    protected $fillable = ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_postable', 'meta', 'is_active'];
+    protected $fillable = [
+        'account_name',
+        'account_type',
+        'bank_name',
+        'account_number',
+        'ifsc_code',
+        'upi_id',
+        'opening_balance',
+        'balance_type',
+        'current_balance',
+        'is_active',
+    ];
 
-    public function postings()
-    {
-        return $this->hasMany(JournalPosting::class);
-    }
-
+    // Example: link to ledgers
     public function ledgers()
     {
         return $this->hasMany(Ledger::class);
-    }
-
-    public function parent()
-    {
-        return $this->belongsTo(Account::class, 'parent_id');
-    }
-
-    public function children()
-    {
-        return $this->hasMany(Account::class, 'parent_id');
     }
 }

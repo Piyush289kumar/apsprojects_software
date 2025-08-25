@@ -41,7 +41,7 @@ class LedgerResource extends Resource
                     ->label('Transaction Date'),
 
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name')
+                    ->relationship('account', 'account_name') // ✅ Fix here
                     ->searchable()
                     ->preload()
                     ->required()
@@ -71,7 +71,7 @@ class LedgerResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('date')->date()->sortable(),
-                Tables\Columns\TextColumn::make('account.name')->label('Account')->searchable(),
+                Tables\Columns\TextColumn::make('account.account_name')->label('Account')->searchable(),
                 Tables\Columns\BadgeColumn::make('transaction_type')
                     ->colors([
                         'success' => 'debit',
@@ -89,8 +89,8 @@ class LedgerResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('account_id')
-                    ->relationship('account', 'name')
-                    ->searchable()
+                    ->relationship('account', 'account_name')->searchable()
+
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

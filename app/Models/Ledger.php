@@ -27,4 +27,32 @@ class Ledger extends Model
     {
         return $this->belongsTo(JournalEntry::class);
     }
+
+    protected static function booted()
+    {
+        static::creating(function ($ledger) {
+            if (auth()->check()) {
+                $ledger->created_by = auth()->id();
+            }
+
+            // 🔹 Get related account
+            $account = Account::find($ledger->account_id);
+
+            if ($account) {
+                // Calculate new balance
+                $currentBalance = $account->current_balance ?? $account->opening_balance;
+
+                if ($ledger->transaction_type === 'debit') {
+                    $ledger->balance = $currentBalance + $ledger->amount;
+                } elseif ($ledger->transaction_type === 'credit') {
+                    $ledger->balance = $currentBalance - $ledger->amount;
+                }
+
+                // Save back to account
+                $account->current_balance = $ledger->balance;
+                $account->save();
+            }
+        });
+    }
+
 }

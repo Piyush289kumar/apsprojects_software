@@ -36,10 +36,10 @@ return new class extends Migration {
             $table->decimal('balance', 15, 2)->default(0);
 
             // 🔗 Reference to journal entry
-            $table->foreignId('journal_entry_id')->constrained();
+            $table->foreignId('journal_entry_id')->nullable()->constrained();
 
             // 🔗 Polymorphic reference (invoice, payment, voucher, transfer, etc.)
-            $table->morphs('ledgerable'); // ledgerable_id, ledgerable_type
+            $table->nullableMorphs('ledgerable'); // allows NULL
 
             // Extra accounting data
             $table->string('reference')->nullable();
