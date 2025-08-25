@@ -34,7 +34,7 @@ return new class extends Migration {
 
             // Polymorphic billing party: customer, vendor OR source store
             $table->morphs('billable'); // billable_id + billable_type
-          
+
             // Destination store (nullable, only for transfer orders)
             $table->foreignId('destination_store_id')
                 ->nullable()
@@ -61,11 +61,32 @@ return new class extends Migration {
             $table->enum('status', [
                 'draft',
                 'pending',
+                'approved',
+                'rejected',
                 'paid',
                 'partial',
                 'cancelled',
-                'completed'
+                'completed',
             ])->default('draft');
+
+
+            $table->enum('payment_mode', [
+                'cash',
+                'bank_transfer',
+                'cheque',
+                'upi',
+                'card',
+                'other',
+            ])->nullable();
+
+            $table->string('payment_terms')->nullable(); // e.g., "Net 30"
+            $table->string('currency', 3)->default('INR');
+            $table->decimal('exchange_rate', 10, 4)->default(1);
+
+            // Shipping
+            $table->string('shipping_address')->nullable();
+            $table->string('shipping_method')->nullable();
+            $table->decimal('shipping_charges', 15, 2)->default(0);
 
             $table->text('notes')->nullable();
 
