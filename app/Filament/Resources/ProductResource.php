@@ -42,8 +42,7 @@ class ProductResource extends Resource
                         Forms\Components\Select::make('unit_id')
                             ->label('Unit')
                             ->relationship('unit', 'symbol')
-                            ->searchable()
-                            ->required(),
+                            ->searchable(),
 
                         Forms\Components\Select::make('brand_id')
                             ->label('Brand')
@@ -129,7 +128,7 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Pricing')
                     ->schema([
                         Forms\Components\TextInput::make('purchase_price')->numeric()->step(0.01)->required(),
-                        Forms\Components\TextInput::make('selling_price')->numeric()->step(0.01)->required(),
+                        Forms\Components\TextInput::make('selling_price')->numeric()->step(0.01),
                         Forms\Components\TextInput::make('mrp')->numeric()->step(0.01)->nullable(),
                     ])->columns(3),
 
@@ -159,9 +158,8 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_path')->disk('public')->square()->toggleable(),
+                Tables\Columns\TextColumn::make('id')->label('Product Code')->searchable()->sortable()->toggleable(),                
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable()->toggleable(),
-                Tables\Columns\TextColumn::make('sku')->searchable()->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('category.name')->label('Category')->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('selling_price')->money('INR')->sortable()->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable()->toggleable(),

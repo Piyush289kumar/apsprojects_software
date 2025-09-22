@@ -72,14 +72,14 @@ class InvoiceResource extends Resource
                             ->label('Bill To')
                             ->options([
                                 'App\Models\Customer' => 'Customer',
-                                'App\Models\Vendor' => 'Vendor',
+                                'App\Models\Vendor' => 'Client',
                             ])->disabled(true)
                             ->default('App\Models\Vendor') // Always default to Vendor                            
                             ->required()
                             ->dehydrated(true) // 👈 Force saving to DB
                             ->reactive(),
                         Select::make('billable_id')
-                            ->label('Select Vendor')
+                            ->label('Select Client')
                             ->options(function (callable $get) {
                                 $type = $get('billable_type');
                                 if (!$type) {
@@ -94,7 +94,7 @@ class InvoiceResource extends Resource
                                 Grid::make('3')
                                     ->schema([
                                         Forms\Components\TextInput::make('name')
-                                            ->label('Vendor Name')
+                                            ->label('Client Name')
                                             ->required(),
                                         Forms\Components\TextInput::make('email')
                                             ->label('Email')
@@ -156,7 +156,18 @@ class InvoiceResource extends Resource
                                             ->schema([
                                                 Select::make('product_id')
                                                     ->label('Product')
-                                                    ->options(Product::pluck('name', 'id'))
+                                                    ->getSearchResultsUsing(function (string $query) {
+                                                        return Product::query()
+                                                            ->where('name', 'like', "%{$query}%")
+                                                            ->orWhere('id', 'like', "%{$query}%")
+                                                            ->orWhere('sku', 'like', "%{$query}%")
+                                                            ->limit(50)
+                                                            ->pluck('name', 'id'); // you can also pluck("display_field", "id")
+                                                    })
+                                                    ->getOptionLabelUsing(function ($value): ?string {
+                                                        $product = Product::find($value);
+                                                        return $product ? "{$product->id} - {$product->sku} - {$product->name}" : null;
+                                                    })
                                                     ->searchable()
                                                     ->required()
                                                     ->reactive()
