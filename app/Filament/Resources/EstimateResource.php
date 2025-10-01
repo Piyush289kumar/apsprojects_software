@@ -507,7 +507,7 @@ class EstimateResource extends Resource
                     ->modalHeading('View Document')
                     ->modalContent(function ($record) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(8);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
@@ -569,7 +569,7 @@ class EstimateResource extends Resource
                     ->icon('heroicon-s-printer')
                     ->action(function ($record, $livewire) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(8);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {

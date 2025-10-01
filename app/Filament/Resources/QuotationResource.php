@@ -508,7 +508,7 @@ public static function form(Form $form): Form
                     ->modalHeading('View Document')
                     ->modalContent(function ($record) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(9);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
@@ -570,7 +570,7 @@ public static function form(Form $form): Form
                     ->icon('heroicon-s-printer')
                     ->action(function ($record, $livewire) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(9);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
