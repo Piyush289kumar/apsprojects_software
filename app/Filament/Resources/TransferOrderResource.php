@@ -465,7 +465,7 @@ class TransferOrderResource extends Resource
                 Tables\Columns\TextColumn::make('number')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('billable.name')->label('Source Store')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('destinationStore.name')->label('Destination Store')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),                                
+                Tables\Columns\TextColumn::make('document_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('status')->sortable(),
             ])->defaultSort('created_at', 'desc')
 
@@ -526,7 +526,7 @@ class TransferOrderResource extends Resource
                     ->modalHeading('View Document')
                     ->modalContent(function ($record) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(11);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
@@ -543,11 +543,21 @@ class TransferOrderResource extends Resource
                             '$NUMBER' => (string) $record->number,
                             '$DOCUMENT_DATE' => Carbon::parse($record->document_date)->format('d-m-Y'),
                             '$PLACE_OF_SUPPLY' => (string) ($record->place_of_supply ?? ''),
-                            '$ACCOUNT_NAME' => (string) ($record->billable->name ?? ''),
-                            '$ACCOUNT_ADDRESS' => (string) ($record->billable->address ?? ''),
-                            '$ACCOUNT_PHONE' => (string) ($record->billable->phone ?? ''),
-                            '$ACCOUNT_GSTIN' => (string) ($record->billable->gst_number ?? ''),
-                            '$ACCOUNT_STATE' => (string) ($record->billable->state ?? ''),
+
+                            // Source Store
+                            '$SOURCE_NAME' => (string) ($record->billable->name ?? ''),
+                            '$SOURCE_ADDRESS' => (string) ($record->billable->address ?? ''),
+                            '$SOURCE_PHONE' => (string) ($record->billable->phone ?? ''),
+                            '$SOURCE_GSTIN' => (string) ($record->billable->gst_number ?? ''),
+                            '$SOURCE_STATE' => (string) ($record->billable->state ?? ''),
+
+                            // Destination Store
+                            '$DEST_NAME' => (string) ($record->destinationStore->name ?? ''),
+                            '$DEST_ADDRESS' => (string) ($record->destinationStore->address ?? ''),
+                            '$DEST_PHONE' => (string) ($record->destinationStore->phone ?? ''),
+                            '$DEST_GSTIN' => (string) ($record->destinationStore->gst_number ?? ''),
+                            '$DEST_STATE' => (string) ($record->destinationStore->state ?? ''),
+
                             '$SUB_TOTAL' => number_format($record->items->sum(fn($i) => (float) $i->unit_price * (float) $i->quantity), 2),
                             '$DISCOUNT' => number_format($record->discount, 2),
                             '$TOTAL_AMOUNT' => number_format($record->total_amount, 2),
@@ -588,7 +598,7 @@ class TransferOrderResource extends Resource
                     ->icon('heroicon-s-printer')
                     ->action(function ($record, $livewire) {
                         // 1) Fetch template
-                        $template = DocumentTemplate::find(4);
+                        $template = DocumentTemplate::find(11);
                         $templateBody = (string) ($template->body ?? '');
                         // 2) Build replacements
                         $itemsHtml = $record->items->map(function ($item, $index) {
