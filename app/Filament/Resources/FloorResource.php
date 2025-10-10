@@ -23,6 +23,12 @@ class FloorResource extends Resource
     protected static ?string $pluralLabel = 'Floors';
     protected static ?int $navigationSort = 6;
 
+    // 👇 Add this method
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

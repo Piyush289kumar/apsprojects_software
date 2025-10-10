@@ -23,6 +23,12 @@ class BlockResource extends Resource
     protected static ?string $pluralLabel = 'Blocks';
     protected static ?int $navigationSort = 8;
 
+    // 👇 Add this method
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

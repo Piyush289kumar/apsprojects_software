@@ -21,6 +21,12 @@ class StockTransferResource extends Resource
     protected static ?string $navigationGroup = 'Inventory Management';
     protected static ?int $navigationSort = 3;
 
+    // 👇 Add this method
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
