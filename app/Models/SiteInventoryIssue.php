@@ -13,6 +13,7 @@ class SiteInventoryIssue extends Model
     protected $fillable = [
         'store_id',
         'site_id',
+        'transfer_to_store_id',
         'issued_by',
         'status',
         'notes',
@@ -43,4 +44,11 @@ class SiteInventoryIssue extends Model
     {
         return $this->hasMany(SiteInventoryIssueItem::class);
     }
+
+    public function transferToStore()
+    {
+        return $this->belongsTo(\App\Models\Store::class, 'transfer_to_store_id');
+    }
+
+
 }
