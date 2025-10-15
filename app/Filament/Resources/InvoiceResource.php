@@ -156,6 +156,12 @@ class InvoiceResource extends Resource
                                             ->schema([
                                                 Select::make('product_id')
                                                     ->label('Product')
+                                                    ->options(function () {
+                                                        return Product::query()
+                                                            ->orderBy('name')
+                                                            ->limit(200) // optional limit for performance
+                                                            ->pluck('name', 'id');
+                                                    })
                                                     ->getSearchResultsUsing(function (string $query) {
                                                         return Product::query()
                                                             ->where('name', 'like', "%{$query}%")
@@ -218,7 +224,8 @@ class InvoiceResource extends Resource
                                                     ->required()
                                                     ->default(0) // ensures it starts at 0
                                                     ->placeholder('0') // optional, shows 0 when empty
-                                                    ->reactive()
+                                                    // ->reactive()
+                                                    ->lazy() // <-- update only on blur
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
@@ -227,7 +234,8 @@ class InvoiceResource extends Resource
                                                     ->label('Unit Price')
                                                     ->numeric()
                                                     ->required()
-                                                    ->reactive()
+                                                    // ->reactive()
+                                                    ->lazy() // <-- update only on blur
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
@@ -236,7 +244,8 @@ class InvoiceResource extends Resource
                                                     ->label('CGST (%)')
                                                     ->numeric()
                                                     ->default(0)
-                                                    ->reactive()
+                                                    // ->reactive()
+                                                    ->lazy() // <-- update only on blur
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
@@ -245,7 +254,8 @@ class InvoiceResource extends Resource
                                                     ->label('SGST (%)')
                                                     ->numeric()
                                                     ->default(0)
-                                                    ->reactive()
+                                                    // ->reactive()
+                                                    ->lazy() // <-- update only on blur
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
@@ -254,7 +264,8 @@ class InvoiceResource extends Resource
                                                     ->label('IGST (%)')
                                                     ->numeric()
                                                     ->default(0)
-                                                    ->reactive()
+                                                    // ->reactive()
+                                                    ->lazy() // <-- update only on blur
                                                     ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                                         InvoiceResource::recalculateItem($set, $get);
                                                     })
@@ -312,7 +323,8 @@ class InvoiceResource extends Resource
                             ->placeholder('0') // optional, shows 0 when empty
                             ->numeric()
                             ->default(0)
-                            ->reactive()
+                            // ->reactive()
+                            ->lazy()
                             ->afterStateUpdated(function (callable $set, callable $get, $state) {
                                 // only recalc totals here, no item recalcs
                                 InvoiceResource::recalculateInvoiceTotals($set, $get);
