@@ -128,7 +128,7 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Pricing')
                     ->schema([
                         Forms\Components\TextInput::make('purchase_price')->numeric()->step(0.01)->required(),
-                        Forms\Components\TextInput::make('selling_price')->numeric()->step(0.01),
+                        Forms\Components\TextInput::make('selling_price')->numeric()->step(0.01)->required(),
                         Forms\Components\TextInput::make('mrp')->numeric()->step(0.01)->nullable(),
                     ])->columns(3),
 
